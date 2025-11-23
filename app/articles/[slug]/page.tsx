@@ -4,9 +4,11 @@ import { getSessionUser } from '@/lib/auth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { marked } from 'marked'
 import RelationTypeSelector from '@/components/RelationTypeSelector'
 import DeleteButton from '@/components/DeleteButton'
 import AuthButton from '@/components/AuthButton'
+import TableOfContents, { addHeadingIds } from '@/components/TableOfContents'
 import type { ArticleDetail, ArticleLinkWithToArticle, ArticleLinkWithFromArticle, RelationType } from '@/types'
 
 interface PageProps {
@@ -145,7 +147,18 @@ export default async function ArticlePage({ params }: PageProps) {
   const detectedLinks = (await detectKeywords(article.content)).filter(
     (link) => link.articleId !== article.id
   )
-  const contentWithLinks = insertLinks(article.content, detectedLinks)
+  
+  // 마크다운에 링크 삽입 (마크다운 단계에서 처리)
+  let contentWithLinks = insertLinks(article.content, detectedLinks)
+  
+  // 마크다운을 HTML로 변환
+  let htmlContent = marked(contentWithLinks, {
+    breaks: true,
+    gfm: true,
+  }) as string
+  
+  // 헤딩에 ID 추가
+  htmlContent = addHeadingIds(htmlContent, article.content)
 
   return (
     <div className="min-h-screen bg-background">
@@ -167,7 +180,10 @@ export default async function ArticlePage({ params }: PageProps) {
           </div>
         </div>
       </header>
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+        {/* 목차 컴포넌트 */}
+        <TableOfContents content={article.content} />
+        
         <div className="bg-surface rounded-2xl shadow-sm p-8 animate-fade-in">
           <div className="flex justify-between items-start mb-6">
             <h1 className="text-4xl font-bold text-text-primary">{article.title}</h1>
@@ -194,7 +210,7 @@ export default async function ArticlePage({ params }: PageProps) {
 
           <div
             className="prose prose-lg max-w-none text-text-primary"
-            dangerouslySetInnerHTML={{ __html: contentWithLinks }}
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
           />
 
           {/* 관련 링크 섹션 */}
