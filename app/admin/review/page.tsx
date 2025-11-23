@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ReviewArticleList from '@/components/Admin/ReviewArticleList'
 
+export const dynamic = 'force-dynamic' // 쿠키 사용으로 인해 동적 렌더링 필요
+
 export default async function ReviewPage() {
   const user = await getSessionUser()
   
