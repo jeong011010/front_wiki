@@ -144,19 +144,37 @@ export default async function ArticlePage({ params }: PageProps) {
     }
   }
 
+  // 먼저 마크다운을 HTML로 변환
+  let htmlContent = marked(article.content, {
+    breaks: true,
+    gfm: true,
+  }) as string
+  
   // 자동 링크 삽입 (자기 자신 제외)
   const detectedLinks = (await detectKeywords(article.content)).filter(
     (link) => link.articleId !== article.id
   )
   
-  // 마크다운에 링크 삽입 (마크다운 단계에서 처리)
-  let contentWithLinks = insertLinks(article.content, detectedLinks)
-  
-  // 마크다운을 HTML로 변환
-  let htmlContent = marked(contentWithLinks, {
-    breaks: true,
-    gfm: true,
-  }) as string
+  // HTML에서 텍스트 노드만 찾아서 링크 삽입
+  // HTML 태그 안이 아닌 텍스트만 매칭
+  for (const link of detectedLinks) {
+    const keyword = link.keyword
+    const slug = link.slug || link.articleId
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    
+    // HTML 태그 안이 아닌 텍스트만 매칭하는 정규식
+    // >(텍스트)< 패턴에서 텍스트 부분만 매칭
+    const regex = new RegExp(`(>)([^<]*?)(${escapedKeyword})([^<]*?)(<)`, 'gi')
+    
+    htmlContent = htmlContent.replace(regex, (match, before, prefix, keywordMatch, suffix, after) => {
+      // 이미 링크 태그 안에 있는지 확인
+      const beforeText = match.substring(0, match.indexOf(keywordMatch))
+      if (beforeText.includes('<a')) {
+        return match // 이미 링크가 있으면 그대로
+      }
+      return `${before}${prefix}<a href="/articles/${slug}" class="text-link hover:text-link-hover underline font-medium">${keywordMatch}</a>${suffix}${after}`
+    })
+  }
   
   // 헤딩에 ID 추가
   htmlContent = addHeadingIds(htmlContent, article.content)
