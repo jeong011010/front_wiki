@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { extractHeadings, type Heading } from '@/lib/markdown-utils'
+import { extractHeadings } from '@/lib/markdown-utils'
 
 interface TableOfContentsProps {
   content: string // 마크다운 원본 텍스트
@@ -10,7 +10,8 @@ interface TableOfContentsProps {
 
 export default function TableOfContents({ content }: TableOfContentsProps) {
   const headings = useMemo(() => extractHeadings(content), [content])
-  const [activeId, setActiveId] = useState<string>('')
+  // 첫 번째 헤딩을 초기값으로 설정
+  const [activeId, setActiveId] = useState<string>(headings.length > 0 ? headings[0].id : '')
   const [isVisible, setIsVisible] = useState(false)
 
   // Intersection Observer로 현재 섹션 감지
@@ -42,15 +43,10 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
       }
     })
 
-    // 첫 번째 헤딩을 기본 활성화
-    if (headings.length > 0 && !activeId) {
-      setActiveId(headings[0].id)
-    }
-
     return () => {
       observer.disconnect()
     }
-  }, [headings, activeId])
+  }, [headings])
 
   // 스크롤 위치에 따라 목차 표시/숨김
   useEffect(() => {
