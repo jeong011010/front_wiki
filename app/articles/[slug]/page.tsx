@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { detectKeywords, insertLinks } from '@/lib/link-detector'
+import { detectKeywords } from '@/lib/link-detector'
 import { getSessionUser } from '@/lib/auth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -239,7 +239,7 @@ export default async function ArticlePage({ params }: PageProps) {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-text-primary">관련 글</h2>
                 <p className="text-sm text-text-secondary">
-                  💡 배지를 클릭하여 관계 유형을 변경할 수 있습니다. "부모-자식"으로 설정하면 다이어그램에 연결선이 표시됩니다.
+                  💡 배지를 클릭하여 관계 유형을 변경할 수 있습니다. &quot;부모-자식&quot;으로 설정하면 다이어그램에 연결선이 표시됩니다.
                 </p>
               </div>
               
