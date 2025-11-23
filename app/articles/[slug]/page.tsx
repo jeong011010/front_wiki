@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { marked } from 'marked'
+import { addHeadingIds } from '@/lib/markdown-utils'
 import RelationTypeSelector from '@/components/RelationTypeSelector'
 import DeleteButton from '@/components/DeleteButton'
 import AuthButton from '@/components/AuthButton'
-import TableOfContents, { addHeadingIds } from '@/components/TableOfContents'
+import TableOfContents from '@/components/TableOfContents'
 import type { ArticleDetail, ArticleLinkWithToArticle, ArticleLinkWithFromArticle, RelationType } from '@/types'
 
 interface PageProps {
