@@ -621,7 +621,7 @@ export default function MarkdownEditor({
             className="px-3 py-1 text-sm bg-surface border border-border rounded hover:bg-surface-hover transition-all"
             title="Quote"
           >
-            " Quote
+            &quot; Quote
           </button>
           <button
             type="button"

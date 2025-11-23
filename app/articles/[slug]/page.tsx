@@ -1,12 +1,15 @@
 import { prisma } from '@/lib/prisma'
-import { detectKeywords, insertLinks } from '@/lib/link-detector'
+import { detectKeywords } from '@/lib/link-detector'
 import { getSessionUser } from '@/lib/auth'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { marked } from 'marked'
+import { addHeadingIds } from '@/lib/markdown-utils'
 import RelationTypeSelector from '@/components/RelationTypeSelector'
 import DeleteButton from '@/components/DeleteButton'
 import AuthButton from '@/components/AuthButton'
+import TableOfContents from '@/components/TableOfContents'
 import type { ArticleDetail, ArticleLinkWithToArticle, ArticleLinkWithFromArticle, RelationType } from '@/types'
 
 interface PageProps {
@@ -141,11 +144,40 @@ export default async function ArticlePage({ params }: PageProps) {
     }
   }
 
+  // 먼저 마크다운을 HTML로 변환
+  let htmlContent = marked(article.content, {
+    breaks: true,
+    gfm: true,
+  }) as string
+  
   // 자동 링크 삽입 (자기 자신 제외)
   const detectedLinks = (await detectKeywords(article.content)).filter(
     (link) => link.articleId !== article.id
   )
-  const contentWithLinks = insertLinks(article.content, detectedLinks)
+  
+  // HTML에서 텍스트 노드만 찾아서 링크 삽입
+  // HTML 태그 안이 아닌 텍스트만 매칭
+  for (const link of detectedLinks) {
+    const keyword = link.keyword
+    const slug = link.slug || link.articleId
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    
+    // HTML 태그 안이 아닌 텍스트만 매칭하는 정규식
+    // >(텍스트)< 패턴에서 텍스트 부분만 매칭
+    const regex = new RegExp(`(>)([^<]*?)(${escapedKeyword})([^<]*?)(<)`, 'gi')
+    
+    htmlContent = htmlContent.replace(regex, (match, before, prefix, keywordMatch, suffix, after) => {
+      // 이미 링크 태그 안에 있는지 확인
+      const beforeText = match.substring(0, match.indexOf(keywordMatch))
+      if (beforeText.includes('<a')) {
+        return match // 이미 링크가 있으면 그대로
+      }
+      return `${before}${prefix}<a href="/articles/${slug}" class="text-link hover:text-link-hover underline font-medium">${keywordMatch}</a>${suffix}${after}`
+    })
+  }
+  
+  // 헤딩에 ID 추가
+  htmlContent = addHeadingIds(htmlContent, article.content)
 
   return (
     <div className="min-h-screen bg-background">
@@ -167,7 +199,10 @@ export default async function ArticlePage({ params }: PageProps) {
           </div>
         </div>
       </header>
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+        {/* 목차 컴포넌트 */}
+        <TableOfContents content={article.content} />
+        
         <div className="bg-surface rounded-2xl shadow-sm p-8 animate-fade-in">
           <div className="flex justify-between items-start mb-6">
             <h1 className="text-4xl font-bold text-text-primary">{article.title}</h1>
@@ -194,7 +229,7 @@ export default async function ArticlePage({ params }: PageProps) {
 
           <div
             className="prose prose-lg max-w-none text-text-primary"
-            dangerouslySetInnerHTML={{ __html: contentWithLinks }}
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
           />
 
           {/* 관련 링크 섹션 */}
@@ -204,7 +239,7 @@ export default async function ArticlePage({ params }: PageProps) {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-text-primary">관련 글</h2>
                 <p className="text-sm text-text-secondary">
-                  💡 배지를 클릭하여 관계 유형을 변경할 수 있습니다. "부모-자식"으로 설정하면 다이어그램에 연결선이 표시됩니다.
+                  💡 배지를 클릭하여 관계 유형을 변경할 수 있습니다. &quot;부모-자식&quot;으로 설정하면 다이어그램에 연결선이 표시됩니다.
                 </p>
               </div>
               

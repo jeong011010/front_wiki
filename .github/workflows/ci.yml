@@ -16,7 +16,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         cache: 'npm'
     
     - name: Install dependencies
@@ -34,7 +34,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         cache: 'npm'
     
     - name: Install dependencies
@@ -42,6 +42,13 @@ jobs:
     
     - name: Generate Prisma Client
       run: npx prisma generate
+    
+    - name: Setup Database
+      run: |
+        npx prisma migrate deploy || npx prisma migrate dev --name init --create-only
+        npx prisma db push || true
+      env:
+        DATABASE_URL: "file:./prisma/test.db"
     
     - name: Build
       run: npm run build
