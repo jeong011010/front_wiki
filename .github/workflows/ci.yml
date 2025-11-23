@@ -47,6 +47,8 @@ jobs:
       run: |
         npx prisma migrate deploy || npx prisma migrate dev --name init --create-only
         npx prisma db push || true
+      env:
+        DATABASE_URL: "file:./prisma/test.db"
     
     - name: Build
       run: npm run build

@@ -13,13 +13,12 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
   const [activeId, setActiveId] = useState<string>('')
   const [isVisible, setIsVisible] = useState(false)
 
-  // 헤딩이 없으면 렌더링하지 않음
-  if (headings.length === 0) {
-    return null
-  }
-
   // Intersection Observer로 현재 섹션 감지
   useEffect(() => {
+    // 헤딩이 없으면 아무것도 하지 않음
+    if (headings.length === 0) {
+      return
+    }
     const observerOptions = {
       rootMargin: '-20% 0% -35% 0%',
       threshold: 0,
@@ -55,6 +54,10 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
 
   // 스크롤 위치에 따라 목차 표시/숨김
   useEffect(() => {
+    // 헤딩이 없으면 아무것도 하지 않음
+    if (headings.length === 0) {
+      return
+    }
     const handleScroll = () => {
       const scrollY = window.scrollY
       setIsVisible(scrollY > 200) // 200px 이상 스크롤 시 표시
@@ -66,7 +69,12 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
     return () => {
       window.removeEventListener('scroll', handleScroll)
     }
-  }, [])
+  }, [headings.length])
+
+  // 헤딩이 없으면 렌더링하지 않음
+  if (headings.length === 0) {
+    return null
+  }
 
   // 헤딩 클릭 시 해당 섹션으로 스크롤
   const handleClick = (id: string) => {

@@ -15,7 +15,7 @@ export function slugify(text: string): string {
   
   // 한글을 포함한 slug 생성
   // 영문은 소문자로, 한글은 그대로 유지
-  let slug = text
+  const slug = text
     .trim()
     // 영문 대문자를 소문자로 변환 (한글은 영향 없음)
     .replace(/[A-Z]/g, (char) => char.toLowerCase())
