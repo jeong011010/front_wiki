@@ -1,0 +1,209 @@
+'use client'
+
+import { useEffect, useState, useMemo } from 'react'
+import { motion } from 'framer-motion'
+
+interface Heading {
+  id: string
+  text: string
+  level: number
+}
+
+interface TableOfContentsProps {
+  content: string // 마크다운 원본 텍스트
+}
+
+/**
+ * 마크다운 텍스트에서 헤딩을 추출하는 함수
+ */
+function extractHeadings(content: string): Heading[] {
+  const headings: Heading[] = []
+  const lines = content.split('\n')
+  
+  for (const line of lines) {
+    // 마크다운 헤딩 패턴: #, ##, ### 등
+    const match = line.match(/^(#{1,6})\s+(.+)$/)
+    if (match) {
+      const level = match[1].length
+      const text = match[2].trim()
+      
+      // ID 생성: 텍스트를 URL-friendly한 형태로 변환
+      const id = text
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '') // 특수문자 제거
+        .replace(/\s+/g, '-') // 공백을 하이픈으로
+        .replace(/-+/g, '-') // 연속된 하이픈을 하나로
+        .trim()
+      
+      headings.push({ id, text, level })
+    }
+  }
+  
+  return headings
+}
+
+/**
+ * 헤딩에 ID를 부여하는 함수
+ */
+function addIdsToHeadings(html: string, headings: Heading[]): string {
+  let result = html
+  let headingIndex = 0
+  
+  // 모든 헤딩 태그를 찾아서 ID 추가
+  const headingRegex = /<h([1-6])[^>]*>(.*?)<\/h[1-6]>/gi
+  let match
+  
+  while ((match = headingRegex.exec(html)) !== null && headingIndex < headings.length) {
+    const heading = headings[headingIndex]
+    const level = parseInt(match[1])
+    const fullMatch = match[0]
+    
+    // 레벨이 일치하는 경우에만 ID 추가
+    if (level === heading.level) {
+      const id = heading.id
+      
+      // 이미 id가 있는지 확인
+      if (!fullMatch.includes(`id="${id}"`)) {
+        // 헤딩 태그에 ID 추가
+        const newHeading = fullMatch.replace(
+          /<h([1-6])[^>]*>/i,
+          `<h${level} id="${id}" class="scroll-mt-20">`
+        )
+        result = result.replace(fullMatch, newHeading)
+      }
+      headingIndex++
+    }
+  }
+  
+  return result
+}
+
+export default function TableOfContents({ content }: TableOfContentsProps) {
+  const headings = useMemo(() => extractHeadings(content), [content])
+  const [activeId, setActiveId] = useState<string>('')
+  const [isVisible, setIsVisible] = useState(false)
+
+  // 헤딩이 없으면 렌더링하지 않음
+  if (headings.length === 0) {
+    return null
+  }
+
+  // Intersection Observer로 현재 섹션 감지
+  useEffect(() => {
+    const observerOptions = {
+      rootMargin: '-20% 0% -35% 0%',
+      threshold: 0,
+    }
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveId(entry.target.id)
+        }
+      })
+    }
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions)
+
+    // 모든 헤딩 요소 관찰
+    headings.forEach((heading) => {
+      const element = document.getElementById(heading.id)
+      if (element) {
+        observer.observe(element)
+      }
+    })
+
+    // 첫 번째 헤딩을 기본 활성화
+    if (headings.length > 0 && !activeId) {
+      setActiveId(headings[0].id)
+    }
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [headings, activeId])
+
+  // 스크롤 위치에 따라 목차 표시/숨김
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY
+      setIsVisible(scrollY > 200) // 200px 이상 스크롤 시 표시
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    handleScroll() // 초기 상태 확인
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
+
+  // 헤딩 클릭 시 해당 섹션으로 스크롤
+  const handleClick = (id: string) => {
+    const element = document.getElementById(id)
+    if (element) {
+      const offset = 80 // 헤더 높이 고려
+      const elementPosition = element.getBoundingClientRect().top
+      const offsetPosition = elementPosition + window.pageYOffset - offset
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth',
+      })
+      
+      // 클릭한 헤딩을 활성화
+      setActiveId(id)
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: isVisible ? 1 : 0, x: isVisible ? 0 : -20 }}
+      transition={{ duration: 0.2 }}
+      className={`hidden lg:block fixed left-4 top-1/2 -translate-y-1/2 z-10 ${
+        isVisible ? 'pointer-events-auto' : 'pointer-events-none'
+      }`}
+    >
+      <div className="bg-surface border border-border rounded-lg shadow-lg p-4 max-h-[80vh] overflow-y-auto w-64 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+        <h2 className="text-sm font-semibold text-text-primary mb-3 sticky top-0 bg-surface pb-2 border-b border-border z-10">
+          목차
+        </h2>
+        <nav className="space-y-1">
+          {headings.map((heading, index) => {
+            const isActive = activeId === heading.id
+            const indent = heading.level - 1
+
+            return (
+              <button
+                key={`${heading.id}-${index}`}
+                onClick={() => handleClick(heading.id)}
+                className={`block w-full text-left px-2 py-1.5 rounded text-sm transition-all truncate ${
+                  isActive
+                    ? 'text-primary-500 font-medium bg-primary-50 dark:bg-primary-900/20'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                }`}
+                style={{
+                  paddingLeft: `${0.5 + indent * 0.75}rem`,
+                }}
+                title={heading.text}
+              >
+                {heading.text}
+              </button>
+            )
+          })}
+        </nav>
+      </div>
+    </motion.div>
+  )
+}
+
+/**
+ * HTML 콘텐츠에 헤딩 ID를 추가하는 유틸리티 함수
+ * 이 함수는 서버 컴포넌트에서 사용할 수 있도록 export
+ */
+export function addHeadingIds(html: string, content: string): string {
+  const headings = extractHeadings(content)
+  return addIdsToHeadings(html, headings)
+}
+
