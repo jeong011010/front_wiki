@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // bcrypt 해시된 비밀번호
+  name      String
+  role      String   @default("user") // "user" 또는 "admin"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  articles Article[]
+  
+  @@index([email])
+}
+
+model Article {
+  id        String   @id @default(cuid())
+  title     String   @unique
+  slug      String   @unique
+  content   String
+  status    String   @default("published") // "draft", "pending", "published"
+  authorId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  
+  // 이 글을 가리키는 링크들
+  incomingLinks ArticleLink[] @relation("ToArticle")
+  // 이 글이 다른 글로 가는 링크들
+  outgoingLinks ArticleLink[] @relation("FromArticle")
+  
+  @@index([slug])
+  @@index([title])
+  @@index([status])
+  @@index([authorId])
+}
+
+model ArticleLink {
+  id            String   @id @default(cuid())
+  keyword       String   // 어떤 키워드로 연결되었는지
+  fromArticleId String
+  toArticleId   String
+  relationType  String   @default("auto") // 관계 유형: "auto", "parent-child", "related", "reference"
+  createdAt     DateTime @default(now())
+  
+  fromArticle Article @relation("FromArticle", fields: [fromArticleId], references: [id], onDelete: Cascade)
+  toArticle   Article @relation("ToArticle", fields: [toArticleId], references: [id], onDelete: Cascade)
+  
+  @@unique([fromArticleId, toArticleId, keyword])
+  @@index([fromArticleId])
+  @@index([toArticleId])
+  @@index([keyword])
+  @@index([relationType])
+}
