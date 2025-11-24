@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "bash scripts/prisma-generate.sh && next build",
+    "prisma:generate": "bash scripts/prisma-generate.sh",
     "start": "next start",
     "lint": "eslint",
     "create-admin": "tsx scripts/create-admin.ts",
