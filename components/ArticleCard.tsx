@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import type { Article } from '@prisma/client'
 
 interface ArticleCardProps {
@@ -32,16 +31,11 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   const preview = article.preview || article.title
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+    <Link
+      href={`/articles/${article.slug}`}
+      className="block bg-surface border border-border rounded-lg p-6 hover:shadow-lg transition-all hover:border-primary-300 group h-full"
+      style={{ height: '240px', display: 'flex', flexDirection: 'column' }}
     >
-      <Link
-        href={`/articles/${article.slug}`}
-        className="block bg-surface border border-border rounded-lg p-6 hover:shadow-lg transition-all hover:border-primary-300 group h-full"
-        style={{ height: '240px', display: 'flex', flexDirection: 'column' }}
-      >
         <div className="flex items-start justify-between mb-3">
           <h3 className="text-xl font-semibold text-text-primary group-hover:text-primary-500 transition-colors line-clamp-2 flex-1">
             {article.title}
@@ -76,8 +70,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
             </span>
           )}
         </div>
-      </Link>
-    </motion.div>
+    </Link>
   )
 }
 
