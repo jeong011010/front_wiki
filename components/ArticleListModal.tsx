@@ -18,10 +18,11 @@ interface Article {
 interface ArticleListModalProps {
   category: string | null
   sortBy: 'recent' | 'popular' | 'title'
+  includeSubcategories: boolean
   onClose: () => void
 }
 
-export default function ArticleListModal({ category, sortBy, onClose }: ArticleListModalProps) {
+export default function ArticleListModal({ category, sortBy, includeSubcategories, onClose }: ArticleListModalProps) {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -37,6 +38,9 @@ export default function ArticleListModal({ category, sortBy, onClose }: ArticleL
         
         if (category) {
           params.append('category', category)
+          if (includeSubcategories) {
+            params.append('includeSubcategories', 'true')
+          }
         }
         params.append('sort', sortBy)
         params.append('limit', String(limit * page))
@@ -58,7 +62,7 @@ export default function ArticleListModal({ category, sortBy, onClose }: ArticleL
     }
 
     fetchArticles()
-  }, [category, sortBy, page])
+  }, [category, sortBy, includeSubcategories, page])
 
   const loadMore = () => {
     if (hasMore) {

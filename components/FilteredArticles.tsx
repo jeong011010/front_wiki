@@ -19,6 +19,7 @@ interface Article {
 export default function FilteredArticles() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'title'>('recent')
+  const [includeSubcategories, setIncludeSubcategories] = useState(false)
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -32,6 +33,9 @@ export default function FilteredArticles() {
         
         if (selectedCategory) {
           params.append('category', selectedCategory)
+          if (includeSubcategories) {
+            params.append('includeSubcategories', 'true')
+          }
         }
         params.append('sort', sortBy)
         params.append('limit', '6')
@@ -51,15 +55,17 @@ export default function FilteredArticles() {
     }
 
     fetchArticles()
-  }, [selectedCategory, sortBy])
+  }, [selectedCategory, sortBy, includeSubcategories])
 
   return (
     <section>
       <ArticleFilterBar
         selectedCategory={selectedCategory}
         sortBy={sortBy}
+        includeSubcategories={includeSubcategories}
         onCategoryChange={setSelectedCategory}
         onSortChange={setSortBy}
+        onIncludeSubcategoriesChange={setIncludeSubcategories}
       />
 
       {loading ? (
@@ -107,6 +113,7 @@ export default function FilteredArticles() {
         <ArticleListModal
           category={selectedCategory}
           sortBy={sortBy}
+          includeSubcategories={includeSubcategories}
           onClose={() => setIsModalOpen(false)}
         />
       )}

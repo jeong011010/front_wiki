@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     const sort = searchParams.get('sort') || 'recent'
     const limit = parseInt(searchParams.get('limit') || '10', 10)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
+    const includeSubcategories = searchParams.get('includeSubcategories') === 'true'
     
     const user = await getSessionUser()
     
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
       : { status: 'published' }
     
     // 카테고리 필터 추가
-    let categoryId: string | undefined
+    let categoryIds: string[] | undefined
     if (category) {
       const categoryRecord = await prisma.category.findFirst({
         where: {
@@ -45,12 +46,29 @@ export async function GET(request: NextRequest) {
         },
       })
       if (categoryRecord) {
-        categoryId = categoryRecord.id
+        if (includeSubcategories) {
+          // 선택한 카테고리와 모든 하위 카테고리 ID 수집
+          const getAllDescendantIds = async (parentId: string): Promise<string[]> => {
+            const children = await prisma.category.findMany({
+              where: { parentId },
+              select: { id: true },
+            })
+            const ids = [parentId]
+            for (const child of children) {
+              const descendantIds = await getAllDescendantIds(child.id)
+              ids.push(...descendantIds)
+            }
+            return ids
+          }
+          categoryIds = await getAllDescendantIds(categoryRecord.id)
+        } else {
+          categoryIds = [categoryRecord.id]
+        }
       }
     }
     
-    const where = categoryId
-      ? { ...baseWhere, categoryId }
+    const where = categoryIds
+      ? { ...baseWhere, categoryId: { in: categoryIds } }
       : baseWhere
     
     // 정렬 옵션
