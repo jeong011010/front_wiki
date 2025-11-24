@@ -30,6 +30,7 @@ export default async function EditArticlePage({ params }: PageProps) {
       content: true,
       slug: true,
       authorId: true,
+      categoryId: true,
     },
   })
 
@@ -67,6 +68,7 @@ export default async function EditArticlePage({ params }: PageProps) {
           <AutoLinkEditor
             initialTitle={article.title}
             initialContent={article.content}
+            initialCategoryId={article.categoryId}
             articleId={article.id}
           />
         </div>

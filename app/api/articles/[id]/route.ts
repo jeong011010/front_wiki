@@ -8,6 +8,7 @@ import { z } from 'zod'
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
   content: z.string().min(1).optional(),
+  categoryId: z.string().optional().nullable(),
 })
 
 // GET: 특정 글 조회
@@ -125,13 +126,32 @@ export async function PUT(
     const body = await request.json()
     const data = updateSchema.parse(body)
     
+    // 카테고리 존재 확인
+    if (data.categoryId !== undefined && data.categoryId !== null) {
+      const category = await prisma.category.findUnique({
+        where: { id: data.categoryId },
+      })
+      
+      if (!category) {
+        return NextResponse.json<ApiErrorResponse>(
+          { error: '카테고리를 찾을 수 없습니다.' },
+          { status: 404 }
+        )
+      }
+    }
+    
     // 기존 링크 삭제
     await prisma.articleLink.deleteMany({
       where: { fromArticleId: id },
     })
     
     // 글 업데이트 (일반 회원이 수정하면 다시 pending 상태로)
-    const updateData: { title?: string; content?: string; status?: string } = { ...data }
+    const updateData: { 
+      title?: string
+      content?: string
+      status?: string
+      categoryId?: string | null
+    } = { ...data }
     if (user.role !== 'admin' && (existingArticle.authorId ?? null) === user.id) {
       updateData.status = 'pending' // 일반 회원이 수정하면 다시 검토 대기
     }
