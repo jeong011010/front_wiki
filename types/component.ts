@@ -5,6 +5,7 @@ import { RelationType } from './article'
  * AutoLinkEditor Props 타입
  */
 export type AutoLinkEditorProps = {
+  initialCategoryId?: string | null
   initialTitle?: string
   initialContent?: string
   articleId?: string

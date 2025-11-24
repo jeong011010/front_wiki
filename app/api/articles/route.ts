@@ -9,6 +9,7 @@ import type { ArticlesListResponse, ArticleCreateResponse, ApiErrorResponse } fr
 const articleSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
+  categoryId: z.string().optional().nullable(),
 })
 
 // GET: 모든 글 목록 (공개된 글만)
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
     
     const body = await request.json()
-    const { title, content } = articleSchema.parse(body)
+    const { title, content, categoryId } = articleSchema.parse(body)
     
     const slug = slugify(title)
     
@@ -69,6 +70,20 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
+    // 카테고리 존재 확인
+    if (categoryId) {
+      const category = await prisma.category.findUnique({
+        where: { id: categoryId },
+      })
+      
+      if (!category) {
+        return NextResponse.json<ApiErrorResponse>(
+          { error: '카테고리를 찾을 수 없습니다.' },
+          { status: 404 }
+        )
+      }
+    }
+    
     // 글 생성 (관리자는 바로 공개, 일반 회원은 검토 대기)
     const status = user.role === 'admin' ? 'published' : 'pending'
     
@@ -79,6 +94,7 @@ export async function POST(request: NextRequest) {
         content,
         status,
         authorId: user.id,
+        categoryId: categoryId || null,
       },
     })
     

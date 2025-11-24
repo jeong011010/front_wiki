@@ -28,6 +28,7 @@ export default function CategorySection({ category }: CategorySectionProps) {
     const fetchArticles = async () => {
       setLoading(true)
       try {
+        // 카테고리 이름으로 필터링
         const response = await fetch(`/api/articles/categories?category=${encodeURIComponent(category)}&limit=6`)
         if (response.ok) {
           const data = await response.json()

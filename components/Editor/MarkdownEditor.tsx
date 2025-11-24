@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import type { AutoLinkEditorProps, DetectedLink, ArticleBasic } from '@/types'
 import { escapeRegex } from '@/lib/link-detector'
 import { marked } from 'marked'
+import CategorySelect from '@/components/CategorySelect'
 import 'github-markdown-css/github-markdown.css'
 
 interface MarkdownEditorProps {
   initialTitle?: string
   initialContent?: string
+  initialCategoryId?: string | null
   articleId?: string
 }
 
@@ -22,11 +24,13 @@ interface LinkSuggestion {
 export default function MarkdownEditor({
   initialTitle = '',
   initialContent = '',
+  initialCategoryId = null,
   articleId,
 }: MarkdownEditorProps) {
   const router = useRouter()
   const [title, setTitle] = useState(initialTitle)
   const [content, setContent] = useState(initialContent)
+  const [categoryId, setCategoryId] = useState<string | null>(initialCategoryId)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [detectedLinks, setDetectedLinks] = useState<DetectedLink[]>([])
   const [showPreview, setShowPreview] = useState(false)
@@ -393,7 +397,11 @@ export default function MarkdownEditor({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ title, content }),
+        body: JSON.stringify({ 
+          title, 
+          content,
+          categoryId: categoryId || undefined,
+        }),
       })
 
       if (!response.ok) {
@@ -516,6 +524,17 @@ export default function MarkdownEditor({
           className="w-full px-4 py-2.5 bg-surface border border-border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-text-primary placeholder:text-text-tertiary transition-all"
           placeholder="글 제목을 입력하세요"
           required
+        />
+      </div>
+
+      <div>
+        <label htmlFor="category" className="block text-sm font-medium mb-2 text-text-primary">
+          카테고리
+        </label>
+        <CategorySelect
+          value={categoryId}
+          onChange={setCategoryId}
+          placeholder="카테고리를 선택하세요 (선택사항)"
         />
       </div>
 

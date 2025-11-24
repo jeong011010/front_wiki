@@ -24,25 +24,40 @@ export async function GET(request: NextRequest) {
       ? {} 
       : { status: 'published' }
     
-    // 카테고리 필터 추가
-    const where = category
-      ? { ...baseWhere, category }
+    // 카테고리 필터 추가 (category는 slug 또는 name으로 받을 수 있음)
+    let categoryId: string | undefined
+    if (category) {
+      const categoryRecord = await prisma.category.findFirst({
+        where: {
+          OR: [
+            { slug: category },
+            { name: category },
+          ],
+        },
+      })
+      if (categoryRecord) {
+        categoryId = categoryRecord.id
+      }
+    }
+    
+    const where = categoryId
+      ? { ...baseWhere, categoryId }
       : baseWhere
     
     const articles = await prisma.article.findMany({
       where,
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        category: true,
-        createdAt: true,
-        updatedAt: true,
-        content: true,
-      },
     })
     
     // 미리보기 생성 (150자)
@@ -55,6 +70,7 @@ export async function GET(request: NextRequest) {
       
       return {
         ...article,
+        category: article.category ? article.category.name : null,
         preview,
         content: undefined, // content는 제외
       }

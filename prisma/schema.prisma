@@ -24,18 +24,37 @@ model User {
   @@index([email])
 }
 
+model Category {
+  id          String   @id @default(cuid())
+  name        String   // 카테고리 이름
+  slug        String   @unique // URL 친화적 식별자
+  description String?  // 카테고리 설명
+  parentId    String?  // 부모 카테고리 ID (null이면 최상위)
+  order       Int      @default(0) // 정렬 순서
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children Category[]  @relation("CategoryTree")
+  articles Article[]
+  
+  @@index([slug])
+  @@index([parentId])
+}
+
 model Article {
   id        String   @id @default(cuid())
   title     String   @unique
   slug      String   @unique
   content   String
   status    String   @default("published") // "draft", "pending", "published"
-  category  String?  // 카테고리: "frontend", "backend", "cloud", "devops", "general" 등
+  categoryId String? // Category 모델과 연결
   authorId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author   User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   
   // 이 글을 가리키는 링크들
   incomingLinks ArticleLink[] @relation("ToArticle")
@@ -46,7 +65,7 @@ model Article {
   @@index([title])
   @@index([status])
   @@index([authorId])
-  @@index([category])
+  @@index([categoryId])
 }
 
 model ArticleLink {

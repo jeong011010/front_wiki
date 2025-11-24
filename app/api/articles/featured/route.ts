@@ -30,6 +30,13 @@ export async function GET(request: NextRequest) {
       const allArticles = await prisma.article.findMany({
         where,
         include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
           _count: {
             select: {
               incomingLinks: true,
@@ -53,7 +60,7 @@ export async function GET(request: NextRequest) {
           id: article.id,
           title: article.title,
           slug: article.slug,
-          category: article.category,
+          category: article.category ? article.category.name : null,
           createdAt: article.createdAt,
           updatedAt: article.updatedAt,
           content: article.content,
@@ -64,16 +71,27 @@ export async function GET(request: NextRequest) {
         where,
         orderBy: { createdAt: 'desc' },
         take: limit,
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          category: true,
-          createdAt: true,
-          updatedAt: true,
-          content: true,
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
         },
       })
+      
+      // 필요한 필드만 추출
+      articles = articles.map((article) => ({
+        id: article.id,
+        title: article.title,
+        slug: article.slug,
+        category: article.category ? article.category.name : null,
+        createdAt: article.createdAt,
+        updatedAt: article.updatedAt,
+        content: article.content,
+      }))
     }
     
     // 미리보기 생성 (150자)
@@ -84,10 +102,15 @@ export async function GET(request: NextRequest) {
         .substring(0, 150) // 150자로 제한
         .trim()
       
+      // category는 이미 string | null로 변환되어 있음
       return {
-        ...article,
+        id: article.id,
+        title: article.title,
+        slug: article.slug,
+        category: article.category,
+        createdAt: article.createdAt,
+        updatedAt: article.updatedAt,
         preview,
-        content: undefined, // content는 제외
       }
     })
     

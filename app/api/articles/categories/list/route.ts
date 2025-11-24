@@ -20,24 +20,44 @@ export async function GET() {
     const allArticles = await prisma.article.findMany({
       where: {
         ...where,
-        category: { not: null },
+        categoryId: { not: null },
       },
       select: {
-        category: true,
+        categoryId: true,
       },
     })
     
     // 카테고리별 개수 계산
     const categoryCounts = new Map<string, number>()
     allArticles.forEach((article) => {
-      if (article.category) {
-        categoryCounts.set(article.category, (categoryCounts.get(article.category) || 0) + 1)
+      if (article.categoryId) {
+        categoryCounts.set(article.categoryId, (categoryCounts.get(article.categoryId) || 0) + 1)
       }
     })
     
-    // 카테고리 목록 반환
+    // categoryId를 카테고리 이름으로 변환
+    const categoryIds = Array.from(categoryCounts.keys())
+    if (categoryIds.length === 0) {
+      return NextResponse.json([])
+    }
+    
+    const categories = await prisma.category.findMany({
+      where: {
+        id: { in: categoryIds },
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    })
+    
+    const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]))
     const categoryList = Array.from(categoryCounts.entries())
-      .map(([name, count]) => ({ name, count }))
+      .map(([id, count]) => {
+        const name = categoryMap.get(id)
+        return name ? { name, count } : null
+      })
+      .filter((cat): cat is { name: string; count: number } => cat !== null)
       .sort((a, b) => b.count - a.count)
     
     return NextResponse.json(categoryList)
