@@ -13,7 +13,7 @@ interface ArticlePreview {
 }
 
 interface LinkPreviewOverlayProps {
-  containerRef: React.RefObject<HTMLDivElement>
+  containerRef: React.RefObject<HTMLDivElement | null>
 }
 
 export default function LinkPreviewOverlay({ containerRef }: LinkPreviewOverlayProps) {
@@ -250,14 +250,15 @@ export default function LinkPreviewOverlay({ containerRef }: LinkPreviewOverlayP
     window.addEventListener('resize', handleResize)
 
     return () => {
-      container.removeEventListener('mouseover', handleMouseEnterWithCheck, { capture: true } as any)
-      container.removeEventListener('mouseout', handleMouseLeaveWithCheck, { capture: true } as any)
+      container.removeEventListener('mouseover', handleMouseEnterWithCheck, { capture: true })
+      container.removeEventListener('mouseout', handleMouseLeaveWithCheck, { capture: true })
       window.removeEventListener('scroll', handleScroll, true)
       window.removeEventListener('resize', handleResize)
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef, preview])
 
   return (
