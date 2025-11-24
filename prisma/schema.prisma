@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,56 +8,50 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String   // bcrypt 해시된 비밀번호
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
   name      String
-  role      String   @default("user") // "user" 또는 "admin"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  articles Article[]
-  
+  role      String    @default("user")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  articles  Article[]
+
   @@index([email])
 }
 
 model Category {
-  id          String   @id @default(cuid())
-  name        String   // 카테고리 이름
-  slug        String   @unique // URL 친화적 식별자
-  description String?  // 카테고리 설명
-  parentId    String?  // 부모 카테고리 ID (null이면 최상위)
-  order       Int      @default(0) // 정렬 순서
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children Category[]  @relation("CategoryTree")
-  articles Article[]
-  
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  parentId    String?
+  order       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  articles    Article[]
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Category[] @relation("CategoryTree")
+
   @@index([slug])
   @@index([parentId])
 }
 
 model Article {
-  id        String   @id @default(cuid())
-  title     String   @unique
-  slug      String   @unique
-  content   String
-  status    String   @default("published") // "draft", "pending", "published"
-  categoryId String? // Category 모델과 연결
-  authorId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  author   User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  
-  // 이 글을 가리키는 링크들
+  id            String        @id @default(cuid())
+  title         String        @unique
+  slug          String        @unique
+  content       String
+  status        String        @default("published")
+  categoryId    String?
+  authorId      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  category      Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
   incomingLinks ArticleLink[] @relation("ToArticle")
-  // 이 글이 다른 글로 가는 링크들
   outgoingLinks ArticleLink[] @relation("FromArticle")
-  
+
   @@index([slug])
   @@index([title])
   @@index([status])
@@ -70,15 +61,14 @@ model Article {
 
 model ArticleLink {
   id            String   @id @default(cuid())
-  keyword       String   // 어떤 키워드로 연결되었는지
+  keyword       String
   fromArticleId String
   toArticleId   String
-  relationType  String   @default("auto") // 관계 유형: "auto", "parent-child", "related", "reference"
+  relationType  String   @default("auto")
   createdAt     DateTime @default(now())
-  
-  fromArticle Article @relation("FromArticle", fields: [fromArticleId], references: [id], onDelete: Cascade)
-  toArticle   Article @relation("ToArticle", fields: [toArticleId], references: [id], onDelete: Cascade)
-  
+  toArticle     Article  @relation("ToArticle", fields: [toArticleId], references: [id], onDelete: Cascade)
+  fromArticle   Article  @relation("FromArticle", fields: [fromArticleId], references: [id], onDelete: Cascade)
+
   @@unique([fromArticleId, toArticleId, keyword])
   @@index([fromArticleId])
   @@index([toArticleId])
