@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useLayoutEffect, useRef } from 'react'
+import { useState, useLayoutEffect } from 'react'
 import ArticleFilterBar from './ArticleFilterBar'
 import ArticleCard from './ArticleCard'
 import ArticleListModal from './ArticleListModal'
@@ -28,7 +28,11 @@ export default function FilteredArticles() {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   useLayoutEffect(() => {
+    let isCancelled = false
+    
     const fetchArticles = async () => {
+      // 문제 3 해결: 빈 배열로 초기화하지 않고 기존 데이터 유지
+      // setLoading(true)만 하고 articles는 유지
       setLoading(true)
       
       try {
@@ -54,17 +58,27 @@ export default function FilteredArticles() {
           const data = await response.json()
           const newArticles = Array.isArray(data) ? data : data.articles || []
           
-          // 상태를 동기적으로 업데이트
-          setArticles(newArticles)
-          setLoading(false)
+          // 취소되지 않았을 때만 상태 업데이트
+          if (!isCancelled) {
+            // 문제 3 해결: 한 번에 상태 업데이트 (빈 배열 중간 단계 없음)
+            setArticles(newArticles)
+            setLoading(false)
+          }
         }
       } catch (error) {
         console.error('Failed to fetch articles:', error)
-        setLoading(false)
+        if (!isCancelled) {
+          setLoading(false)
+        }
       }
     }
 
     fetchArticles()
+    
+    // 클린업: 컴포넌트 언마운트 시 취소
+    return () => {
+      isCancelled = true
+    }
   }, [selectedCategory, sortBy, includeSubcategories, searchQuery])
 
   return (
@@ -80,7 +94,8 @@ export default function FilteredArticles() {
         onSearchChange={setSearchQuery}
       />
 
-      {/* 고정 높이 컨테이너로 레이아웃 시프트 완전 방지 */}
+      {/* 문제 2 해결: 고정 높이 컨테이너로 높이 점프 방지 */}
+      {/* 문제 1 해결: key를 사용하지 않아 언마운트/리마운트 방지 */}
       <div style={{ minHeight: GRID_HEIGHT, height: loading || articles.length > 0 ? GRID_HEIGHT : 'auto' }}>
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
