@@ -73,10 +73,12 @@
 - **Authentication**: bcryptjs (비밀번호 해싱)
 - **Validation**: Zod
 
-### 인프라 (예정)
-- **Server**: AWS EC2
-- **Storage**: AWS S3
-- **Database**: PostgreSQL
+### 인프라
+- **Hosting**: Vercel (서버리스)
+- **Database**: Supabase/Neon (관리형 PostgreSQL)
+- **Storage**: AWS S3 (이미지 저장)
+- **CDN**: CloudFront
+- **Monitoring**: CloudWatch, Vercel Analytics
 
 ## 🚀 시작하기
 
@@ -111,15 +113,32 @@ NEXT_PUBLIC_SITE_URL="http://localhost:3000"  # 프로덕션에서는 실제 도
 프로덕션 환경에서는 AWS S3를 사용하여 이미지를 저장할 수 있습니다. S3를 사용하지 않으면 로컬 파일 시스템(`public/uploads`)에 저장됩니다.
 
 ```env
-# AWS S3 설정
+# AWS S3 설정 (최소 필수: 버킷 이름만)
+AWS_S3_BUCKET_NAME="your-bucket-name"
+
+# AWS 리전 (기본값: ap-northeast-2 - 서울)
+AWS_REGION="ap-northeast-2"
+
+# 인증 방법 (선택사항 - 아래 중 하나 선택)
+# 방법 1: 환경 변수로 credentials 제공 (로컬 개발용)
 AWS_ACCESS_KEY_ID="your-access-key-id"
 AWS_SECRET_ACCESS_KEY="your-secret-access-key"
-AWS_REGION="ap-northeast-2"  # 기본값: 서울 리전
-AWS_S3_BUCKET_NAME="your-bucket-name"
+
+# 방법 2: EC2 Instance Profile 사용 (EC2 배포 시)
+# - EC2 인스턴스에 IAM Role을 연결하면 자동으로 인증됩니다
+# - 환경 변수 설정 불필요
+
+# 방법 3: GitHub Actions OIDC 사용 (CI/CD)
+# - GitHub Secrets에 설정하거나 OIDC를 사용하면 자동으로 인증됩니다
 
 # CloudFront URL (선택사항 - CDN 사용 시)
 AWS_CLOUDFRONT_URL="https://your-cloudfront-domain.cloudfront.net"
 ```
+
+**인증 방법:**
+- **EC2 배포**: EC2 인스턴스에 IAM Role을 연결하면 자동으로 인증됩니다 (환경 변수 불필요)
+- **GitHub Actions**: GitHub Secrets 또는 OIDC를 사용하면 자동으로 인증됩니다
+- **로컬 개발**: 환경 변수로 credentials를 제공하거나, 로컬 파일 시스템 사용
 
 **S3 버킷 설정:**
 1. AWS S3에서 버킷 생성
@@ -321,12 +340,25 @@ npx prisma generate
 
 현재 알려진 이슈는 [Issues](https://github.com/yourusername/kimjazz_blog/issues)에서 확인할 수 있습니다.
 
+## 🚀 배포
+
+서버리스 아키텍처로 비용 없이 배포할 수 있습니다.
+
+**주요 서비스:**
+- **Vercel**: 서버리스 호스팅 (무료)
+- **Supabase/Neon**: 관리형 PostgreSQL (무료)
+- **AWS S3**: 이미지 저장 (프리티어)
+- **CloudFront**: CDN (프리티어)
+- **CloudWatch**: 모니터링 (프리티어)
+
+자세한 배포 가이드는 [배포 가이드](docs/DEPLOYMENT_GUIDE.md)를 참고하세요.
+
 ## 🗺 로드맵
 
-- [ ] S3 이미지 업로드 연동
+- [x] S3 이미지 업로드 연동
 - [ ] 댓글 시스템
 - [ ] 좋아요/북마크 기능
-- [ ] 카테고리/태그 시스템
+- [x] 카테고리/태그 시스템
 - [ ] 사용자 프로필 페이지
 - [ ] 알림 시스템
 - [ ] 다이어그램 필터링/검색 기능
