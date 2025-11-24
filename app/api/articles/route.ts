@@ -4,7 +4,8 @@ import { slugify } from '@/lib/utils'
 import { detectKeywords } from '@/lib/link-detector'
 import { getSessionUser } from '@/lib/auth'
 import { z } from 'zod'
-import type { ArticlesListResponse, ArticleCreateResponse, ApiErrorResponse } from '@/types'
+import type { Prisma } from '@prisma/client'
+import type { ArticleCreateResponse, ApiErrorResponse } from '@/types'
 
 const articleSchema = z.object({
   title: z.string().min(1),
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    let where: any = categoryIds
+    const where: Prisma.ArticleWhereInput = categoryIds
       ? { ...baseWhere, categoryId: { in: categoryIds } }
       : baseWhere
     

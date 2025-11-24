@@ -31,10 +31,9 @@ export default function FilteredArticles() {
   useEffect(() => {
     let isCancelled = false
     
-    // 즉시 loading 상태로 설정하여 레이아웃 시프트 방지
-    setLoading(true)
-    
     const fetchArticles = async () => {
+      // 비동기 함수 내에서 loading 상태 설정
+      setLoading(true)
       try {
         let url = '/api/articles'
         const params = new URLSearchParams()
