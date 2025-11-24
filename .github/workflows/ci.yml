@@ -41,18 +41,16 @@ jobs:
       run: npm ci
     
     - name: Generate Prisma Client
-      run: npx prisma generate
-    
-    - name: Setup Database
       run: |
-        npx prisma migrate deploy || npx prisma migrate dev --name init --create-only
-        npx prisma db push || true
-      env:
-        DATABASE_URL: "file:./prisma/test.db"
+        # CI에서는 마이그레이션 없이 Prisma Client만 생성
+        # DATABASE_URL이 없어도 Prisma Client 생성 가능하도록 더미 URL 사용
+        export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?sslmode=prefer"
+        npx prisma generate
     
     - name: Build
       run: npm run build
       env:
-        DATABASE_URL: "file:./prisma/test.db"
+        # 빌드 시에도 더미 DATABASE_URL 사용 (실제 DB 연결 불필요)
+        DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy?sslmode=prefer"
         NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
 
