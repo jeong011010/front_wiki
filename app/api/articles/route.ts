@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    const where: Prisma.ArticleWhereInput = categoryIds
+    let where: Prisma.ArticleWhereInput = categoryIds
       ? { ...baseWhere, categoryId: { in: categoryIds } }
       : baseWhere
     
