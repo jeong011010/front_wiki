@@ -13,29 +13,149 @@ const articleSchema = z.object({
 })
 
 // GET: 모든 글 목록 (공개된 글만)
-export async function GET() {
+// Query params:
+// - category: 카테고리 slug 또는 name (선택사항)
+// - sort: "recent" | "popular" | "title" (기본값: "recent")
+// - limit: 숫자 (기본값: 10)
+// - offset: 숫자 (기본값: 0)
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get('category')
+    const sort = searchParams.get('sort') || 'recent'
+    const limit = parseInt(searchParams.get('limit') || '10', 10)
+    const offset = parseInt(searchParams.get('offset') || '0', 10)
+    
     const user = await getSessionUser()
     
     // 비회원 또는 일반 회원은 공개된 글만, 관리자는 모든 글
-    const where = user?.role === 'admin' 
+    const baseWhere = user?.role === 'admin' 
       ? {} 
       : { status: 'published' }
     
-    const articles = await prisma.article.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
-    return NextResponse.json<ArticlesListResponse>(articles)
+    // 카테고리 필터 추가
+    let categoryId: string | undefined
+    if (category) {
+      const categoryRecord = await prisma.category.findFirst({
+        where: {
+          OR: [
+            { slug: category },
+            { name: category },
+          ],
+        },
+      })
+      if (categoryRecord) {
+        categoryId = categoryRecord.id
+      }
+    }
+    
+    const where = categoryId
+      ? { ...baseWhere, categoryId }
+      : baseWhere
+    
+    // 정렬 옵션
+    let orderBy: { createdAt?: 'asc' | 'desc'; title?: 'asc' | 'desc' } | { _count: { incomingLinks: 'asc' | 'desc' } }
+    
+    if (sort === 'popular') {
+      // 인기순: incomingLinks 개수가 많은 순
+      // 모든 글을 가져와서 incomingLinks 개수로 정렬
+      const allArticles = await prisma.article.findMany({
+        where,
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          _count: {
+            select: {
+              incomingLinks: true,
+            },
+          },
+        },
+      })
+      
+      // incomingLinks 개수로 정렬하고 limit/offset 적용
+      const sortedArticles = allArticles
+        .sort((a, b) => {
+          const countA = a._count.incomingLinks
+          const countB = b._count.incomingLinks
+          if (countA !== countB) {
+            return countB - countA
+          }
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        })
+        .slice(offset, offset + limit)
+      
+      // 미리보기 생성
+      const articlesWithPreview = sortedArticles.map((article) => {
+        const preview = article.content
+          .replace(/<[^>]*>/g, '')
+          .replace(/\n/g, ' ')
+          .substring(0, 150)
+          .trim()
+        
+        return {
+          id: article.id,
+          title: article.title,
+          slug: article.slug,
+          category: article.category ? article.category.name : null,
+          createdAt: article.createdAt,
+          updatedAt: article.updatedAt,
+          preview,
+        }
+      })
+      
+      return NextResponse.json(articlesWithPreview)
+    } else {
+      // 최신순 또는 제목순
+      if (sort === 'title') {
+        orderBy = { title: 'asc' }
+      } else {
+        orderBy = { createdAt: 'desc' }
+      }
+      
+      const articles = await prisma.article.findMany({
+        where,
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+        orderBy,
+        take: limit,
+        skip: offset,
+      })
+      
+      // 미리보기 생성
+      const articlesWithPreview = articles.map((article) => {
+        const preview = article.content
+          .replace(/<[^>]*>/g, '')
+          .replace(/\n/g, ' ')
+          .substring(0, 150)
+          .trim()
+        
+        return {
+          id: article.id,
+          title: article.title,
+          slug: article.slug,
+          category: article.category ? article.category.name : null,
+          createdAt: article.createdAt,
+          updatedAt: article.updatedAt,
+          preview,
+        }
+      })
+      
+      return NextResponse.json(articlesWithPreview)
+    }
   } catch (error) {
+    console.error('Articles API error:', error)
     return NextResponse.json<ApiErrorResponse>({ error: 'Failed to fetch articles' }, { status: 500 })
   }
 }
