@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useLayoutEffect } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import ArticleFilterBar from './ArticleFilterBar'
 import ArticleCard from './ArticleCard'
 import ArticleListModal from './ArticleListModal'
@@ -26,13 +26,15 @@ export default function FilteredArticles() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const gridRef = useRef<HTMLDivElement>(null)
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     let isCancelled = false
     
+    // 즉시 loading 상태로 설정하여 레이아웃 시프트 방지
+    setLoading(true)
+    
     const fetchArticles = async () => {
-      setLoading(true)
-      
       try {
         let url = '/api/articles'
         const params = new URLSearchParams()
@@ -57,7 +59,16 @@ export default function FilteredArticles() {
           const newArticles = Array.isArray(data) ? data : data.articles || []
           
           if (!isCancelled) {
-            setArticles(newArticles)
+            // requestAnimationFrame을 사용하여 DOM 업데이트와 동기화
+            requestAnimationFrame(() => {
+              if (!isCancelled) {
+                setArticles(newArticles)
+                setLoading(false)
+              }
+            })
+          }
+        } else {
+          if (!isCancelled) {
             setLoading(false)
           }
         }
@@ -76,18 +87,34 @@ export default function FilteredArticles() {
     }
   }, [selectedCategory, sortBy, includeSubcategories, searchQuery])
 
-  // 항상 6개 슬롯을 유지 (빈 슬롯 포함)
-  const displayItems = loading 
-    ? Array(6).fill(null).map((_, i) => ({ type: 'skeleton' as const, id: `skeleton-${i}` }))
-    : articles.length > 0
-    ? [
-        ...articles.map(article => ({ type: 'article' as const, id: article.id, article })),
+  // 항상 6개 슬롯을 유지 (빈 슬롯 포함) - 메모이제이션으로 불필요한 재계산 방지
+  // 로딩 중이어도 카드 슬롯은 유지하고, 스켈레톤은 오버레이로 표시
+  const displayItems = useMemo(() => {
+    if (articles.length > 0) {
+      return [
+        ...articles.map(article => ({ 
+          type: 'article' as const, 
+          id: article.id, 
+          article 
+        })),
         ...Array(Math.max(0, 6 - articles.length)).fill(null).map((_, i) => ({ 
           type: 'empty' as const, 
           id: `empty-${i}` 
         }))
       ]
-    : [{ type: 'empty-state' as const, id: 'empty-state' }]
+    }
+    
+    // articles가 없고 로딩 중이 아닐 때만 empty-state 표시
+    if (!loading) {
+      return [{ type: 'empty-state' as const, id: 'empty-state' }]
+    }
+    
+    // 로딩 중일 때는 빈 슬롯 6개 (스켈레톤은 오버레이로 표시)
+    return Array(6).fill(null).map((_, i) => ({ 
+      type: 'empty' as const, 
+      id: `loading-slot-${i}` 
+    }))
+  }, [loading, articles])
 
   return (
     <section>
@@ -104,16 +131,65 @@ export default function FilteredArticles() {
 
       {/* 고정 높이 그리드 - DOM 구조는 항상 동일 */}
       <div 
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        style={{ minHeight: GRID_HEIGHT, height: GRID_HEIGHT }}
+        ref={gridRef}
+        className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        style={{ 
+          minHeight: GRID_HEIGHT, 
+          height: GRID_HEIGHT,
+          contain: 'layout style paint'
+        }}
       >
+        {/* 실제 카드 또는 빈 슬롯 - 항상 렌더링 */}
         {displayItems.map((item) => {
-          if (item.type === 'skeleton') {
+          if (item.type === 'article') {
+            return (
+              <div key={item.id} style={{ height: '240px' }}>
+                <ArticleCard article={item.article} />
+              </div>
+            )
+          }
+          
+          if (item.type === 'empty') {
             return (
               <div 
-                key={item.id}
+                key={item.id} 
+                style={{ 
+                  height: '240px',
+                  contain: 'layout style'
+                }} 
+                aria-hidden="true" 
+              />
+            )
+          }
+          
+          // empty-state
+          return (
+            <div 
+              key={item.id}
+              className="col-span-full text-center bg-surface border border-border rounded-lg flex items-center justify-center"
+              style={{ height: GRID_HEIGHT }}
+            >
+              <p className="text-text-secondary">표시할 글이 없습니다.</p>
+            </div>
+          )
+        })}
+        
+        {/* 스켈레톤 오버레이 - 로딩 중일 때만 표시 */}
+        {loading && (
+          <div 
+            className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-none"
+            style={{ zIndex: 10 }}
+          >
+            {Array(6).fill(null).map((_, i) => (
+              <div 
+                key={`skeleton-overlay-${i}`}
                 className="bg-surface border border-border rounded-lg p-6 animate-pulse" 
-                style={{ height: '240px', display: 'flex', flexDirection: 'column' }}
+                style={{ 
+                  height: '240px', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  contain: 'layout style'
+                }}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded flex-1" />
@@ -129,47 +205,31 @@ export default function FilteredArticles() {
                   <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
                 </div>
               </div>
-            )
-          }
-          
-          if (item.type === 'article') {
-            return (
-              <div key={item.id} style={{ height: '240px' }}>
-                <ArticleCard article={item.article} />
-              </div>
-            )
-          }
-          
-          if (item.type === 'empty') {
-            return (
-              <div key={item.id} style={{ height: '240px' }} aria-hidden="true" />
-            )
-          }
-          
-          // empty-state
-          return (
-            <div 
-              key={item.id}
-              className="col-span-full text-center bg-surface border border-border rounded-lg flex items-center justify-center"
-              style={{ height: GRID_HEIGHT }}
-            >
-              <p className="text-text-secondary">표시할 글이 없습니다.</p>
-            </div>
-          )
-        })}
+            ))}
+          </div>
+        )}
       </div>
       
-      {/* 더보기 버튼 */}
-      {!loading && articles.length > 0 && (
-        <div className="flex justify-end mt-6">
+      {/* 더보기 버튼 - 항상 고정 위치에 표시하여 레이아웃 시프트 방지 */}
+      <div 
+        className="flex justify-end mt-6"
+        style={{ 
+          height: '3.5rem', // 버튼 높이 + margin-top 고정
+          minHeight: '3.5rem'
+        }}
+      >
+        {!loading && articles.length > 0 ? (
           <button
             onClick={() => setIsModalOpen(true)}
             className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-lg"
           >
             더보기 →
           </button>
-        </div>
-      )}
+        ) : (
+          // 로딩 중이거나 표시할 글이 없을 때는 투명한 플레이스홀더
+          <div style={{ height: '3rem', width: '120px' }} aria-hidden="true" />
+        )}
+      </div>
 
       {isModalOpen && (
         <ArticleListModal

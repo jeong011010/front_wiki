@@ -33,8 +33,13 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   return (
     <Link
       href={`/articles/${article.slug}`}
-      className="block bg-surface border border-border rounded-lg p-6 hover:shadow-lg transition-all hover:border-primary-300 group h-full"
-      style={{ height: '240px', display: 'flex', flexDirection: 'column' }}
+      className="block bg-surface border border-border rounded-lg p-6 hover:shadow-lg transition-[box-shadow,border-color] hover:border-primary-300 group h-full"
+      style={{ 
+        height: '240px', 
+        display: 'flex', 
+        flexDirection: 'column',
+        contain: 'layout style'
+      }}
     >
         <div className="flex items-start justify-between mb-3">
           <h3 className="text-xl font-semibold text-text-primary group-hover:text-primary-500 transition-colors line-clamp-2 flex-1">

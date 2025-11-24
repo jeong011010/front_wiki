@@ -328,18 +328,25 @@ export default function ArticleFilterBar({
 
   return (
     <div className="bg-surface border border-border rounded-lg p-4 mb-6">
-      <div className="flex flex-wrap items-center gap-4">
-        {/* 검색 바 */}
-        <div className="flex-1 min-w-[250px]">
-          <input
-            type="text"
-            placeholder="카테고리 전체에서 검색..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full px-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-          />
-        </div>
+      {/* 첫 번째 줄: 검색 바 */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="카테고리 전체에서 검색..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="w-full px-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+        />
+      </div>
 
+      {/* 두 번째 줄: 필터 및 정렬 옵션 - 항상 고정 높이 */}
+      <div 
+        className="flex flex-wrap items-center gap-2"
+        style={{ 
+          minHeight: '2.75rem', // 버튼 높이 + gap 고정
+          height: 'auto'
+        }}
+      >
         {/* 대분류 버튼들 */}
         <div className="flex flex-wrap gap-2">
           <button
@@ -402,7 +409,7 @@ export default function ArticleFilterBar({
         )}
 
         {/* 정렬 선택 */}
-        <div className="flex gap-2 bg-secondary-300 rounded-lg p-1">
+        <div className="flex gap-2 bg-secondary-300 rounded-lg p-1 ml-auto">
           <button
             onClick={() => onSortChange('recent')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
