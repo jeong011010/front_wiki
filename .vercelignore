@@ -1,5 +1,5 @@
-# Vercel이 Prisma 마이그레이션을 자동 실행하지 않도록 설정
-# Prisma 마이그레이션은 이미 Supabase SQL Editor에서 수동으로 실행했으므로
+# Vercel이 Prisma 마이그레이션을 자동 실행하지 않도록
+# 마이그레이션은 이미 Supabase SQL Editor에서 수동으로 실행했으므로
 # 빌드 시에는 Prisma Client 생성만 필요
 
 prisma/migrations
