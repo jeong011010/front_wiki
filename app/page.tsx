@@ -15,17 +15,52 @@ export const metadata: Metadata = {
 }
 
 export default async function Home() {
-  // 카테고리 목록은 API 엔드포인트를 통해 조회
-  // 서버 컴포넌트에서 직접 fetch 사용
+  // 서버 컴포넌트에서 직접 Prisma 사용
   let categoryList: Array<{ name: string; count: number }> = []
   
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-    const response = await fetch(`${baseUrl}/api/articles/categories/list`, {
-      cache: 'no-store',
+    const { prisma } = await import('@/lib/prisma')
+    
+    // published 상태인 글 중 카테고리가 있는 글만 조회
+    const allArticles = await prisma.article.findMany({
+      where: {
+        status: 'published',
+        categoryId: { not: null },
+      },
+      select: {
+        categoryId: true,
+      },
     })
-    if (response.ok) {
-      categoryList = await response.json()
+    
+    // 카테고리별 개수 계산
+    const categoryCounts = new Map<string, number>()
+    allArticles.forEach((article) => {
+      if (article.categoryId) {
+        categoryCounts.set(article.categoryId, (categoryCounts.get(article.categoryId) || 0) + 1)
+      }
+    })
+    
+    // categoryId를 카테고리 이름으로 변환
+    const categoryIds = Array.from(categoryCounts.keys())
+    if (categoryIds.length > 0) {
+      const categories = await prisma.category.findMany({
+        where: {
+          id: { in: categoryIds },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      })
+      
+      const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]))
+      categoryList = Array.from(categoryCounts.entries())
+        .map(([id, count]) => {
+          const name = categoryMap.get(id)
+          return name ? { name, count } : null
+        })
+        .filter((cat): cat is { name: string; count: number } => cat !== null)
+        .sort((a, b) => b.count - a.count)
     }
   } catch (error) {
     console.error('Failed to fetch categories:', error)
