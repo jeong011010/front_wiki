@@ -58,8 +58,19 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Register error:', error)
-    console.error('Register error stack:', error instanceof Error ? error.stack : 'No stack')
+    // 상세한 오류 로깅 (Vercel 로그에서 확인 가능)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorStack = error instanceof Error ? error.stack : undefined
+    const errorName = error instanceof Error ? error.name : 'Unknown'
+    
+    console.error('=== Register Error Start ===')
+    console.error('Error Name:', errorName)
+    console.error('Error Message:', errorMessage)
+    console.error('Error Stack:', errorStack)
+    console.error('Full Error:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    console.error('DATABASE_URL exists:', !!process.env.DATABASE_URL)
+    console.error('DATABASE_URL preview:', process.env.DATABASE_URL?.substring(0, 30) + '...')
+    console.error('=== Register Error End ===')
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -68,20 +79,12 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    const errorStack = error instanceof Error ? error.stack : undefined
-    
-    console.error('Register error details:', {
-      message: errorMessage,
-      stack: errorStack,
-      error: error
-    })
-    
+    // 프로덕션에서도 오류 메시지 반환 (디버깅용)
     return NextResponse.json(
       { 
         error: '회원가입에 실패했습니다.',
-        message: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
-        ...(process.env.NODE_ENV === 'development' && errorStack ? { stack: errorStack } : {})
+        message: errorMessage, // 프로덕션에서도 표시
+        name: errorName,
       },
       { status: 500 }
     )
