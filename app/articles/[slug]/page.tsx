@@ -1,16 +1,18 @@
-import { prisma } from '@/lib/prisma'
-import { detectKeywords } from '@/lib/link-detector'
+import ArticleContentWithPreview from '@/components/ArticleContentWithPreview'
+import AuthButton from '@/components/AuthButton'
+import DeleteButton from '@/components/DeleteButton'
+import RelationTypeSelector from '@/components/RelationTypeSelector'
+import TableOfContents from '@/components/TableOfContents'
 import { getSessionUser } from '@/lib/auth'
+import { detectKeywords } from '@/lib/link-detector'
+import { addHeadingIds } from '@/lib/markdown-utils'
+import { prisma } from '@/lib/prisma'
+import type { ArticleDetail, ArticleLinkWithFromArticle, ArticleLinkWithToArticle, RelationType } from '@/types'
+import type { Article } from '@prisma/client'
+import { marked } from 'marked'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { Metadata } from 'next'
-import { marked } from 'marked'
-import { addHeadingIds } from '@/lib/markdown-utils'
-import RelationTypeSelector from '@/components/RelationTypeSelector'
-import DeleteButton from '@/components/DeleteButton'
-import AuthButton from '@/components/AuthButton'
-import TableOfContents from '@/components/TableOfContents'
-import type { ArticleDetail, ArticleLinkWithToArticle, ArticleLinkWithFromArticle, RelationType } from '@/types'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -23,19 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   
   const article = await prisma.article.findUnique({
     where: { slug: decodedSlug },
-    select: {
-      title: true,
-      content: true,
-      status: true,
-      author: {
-        select: {
-          name: true,
-        },
-      },
-      createdAt: true,
-      updatedAt: true,
-    },
-  })
+  }) as (Article & { author?: { name: string } | null; status: string }) | null
 
   if (!article || article.status !== 'published') {
     return {
@@ -90,15 +80,7 @@ export default async function ArticlePage({ params }: PageProps) {
   
   const article = await prisma.article.findUnique({
     where: { slug: decodedSlug },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      content: true,
-      status: true,
-      authorId: true,
-      createdAt: true,
-      updatedAt: true,
+    include: {
       outgoingLinks: {
         include: {
           toArticle: {
@@ -108,9 +90,6 @@ export default async function ArticlePage({ params }: PageProps) {
               slug: true,
             },
           },
-        },
-        orderBy: {
-          relationType: 'asc', // parent-child가 먼저 오도록
         },
       },
       incomingLinks: {
@@ -123,23 +102,53 @@ export default async function ArticlePage({ params }: PageProps) {
             },
           },
         },
-        orderBy: {
-          relationType: 'asc',
-        },
       },
     },
-  }) as ArticleDetail | null
-
+  })
+  
   if (!article) {
     notFound()
   }
   
+  // relationType으로 정렬
+  type LinkWithRelation = {
+    relationType: string
+    toArticle?: { id: string; title: string; slug: string }
+    fromArticle?: { id: string; title: string; slug: string }
+    [key: string]: unknown
+  }
+  
+  const sortedOutgoingLinks = [...(article.outgoingLinks as unknown as LinkWithRelation[])].sort((a, b) => {
+    const order: Record<string, number> = { 'parent-child': 0, 'related': 1, 'reference': 2, 'auto': 3 }
+    return (order[a.relationType] ?? 99) - (order[b.relationType] ?? 99)
+  })
+  
+  const sortedIncomingLinks = [...(article.incomingLinks as unknown as LinkWithRelation[])].sort((a, b) => {
+    const order: Record<string, number> = { 'parent-child': 0, 'related': 1, 'reference': 2, 'auto': 3 }
+    return (order[a.relationType] ?? 99) - (order[b.relationType] ?? 99)
+  })
+  
+  // 타입 캐스팅
+  const articleDetail = {
+    ...article,
+    outgoingLinks: sortedOutgoingLinks.map((link) => ({
+      ...link,
+      relationType: link.relationType,
+      toArticle: link.toArticle!,
+    })) as ArticleLinkWithToArticle[],
+    incomingLinks: sortedIncomingLinks.map((link) => ({
+      ...link,
+      relationType: link.relationType,
+      fromArticle: link.fromArticle!,
+    })) as ArticleLinkWithFromArticle[],
+  } as ArticleDetail
+
   // 비공개 글 체크 (관리자 또는 작성자만 볼 수 있음)
-  if (article.status !== 'published') {
+  if (articleDetail.status !== 'published') {
     if (!user) {
       notFound() // 비회원은 404
     }
-    if (user.role !== 'admin' && article.authorId !== user.id) {
+    if (user.role !== 'admin' && articleDetail.authorId !== user.id) {
       notFound() // 작성자나 관리자가 아니면 404
     }
   }
@@ -151,8 +160,8 @@ export default async function ArticlePage({ params }: PageProps) {
   }) as string
   
   // 자동 링크 삽입 (자기 자신 제외)
-  const detectedLinks = (await detectKeywords(article.content)).filter(
-    (link) => link.articleId !== article.id
+  const detectedLinks = (await detectKeywords(articleDetail.content)).filter(
+    (link) => link.articleId !== articleDetail.id
   )
   
   // HTML에서 텍스트 노드만 찾아서 링크 삽입
@@ -172,7 +181,7 @@ export default async function ArticlePage({ params }: PageProps) {
       if (beforeText.includes('<a')) {
         return match // 이미 링크가 있으면 그대로
       }
-      return `${before}${prefix}<a href="/articles/${slug}" class="text-link hover:text-link-hover underline font-medium">${keywordMatch}</a>${suffix}${after}`
+      return `${before}${prefix}<a href="/articles/${slug}" class="text-link hover:text-link-hover underline font-medium" data-article-slug="${slug}">${keywordMatch}</a>${suffix}${after}`
     })
   }
   
@@ -201,40 +210,37 @@ export default async function ArticlePage({ params }: PageProps) {
       </header>
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
         {/* 목차 컴포넌트 */}
-        <TableOfContents content={article.content} />
+        <TableOfContents content={articleDetail.content} />
         
         <div className="bg-surface rounded-2xl shadow-sm p-8 animate-fade-in">
           <div className="flex justify-between items-start mb-6">
-            <h1 className="text-4xl font-bold text-text-primary">{article.title}</h1>
-            {user && (user.role === 'admin' || article.authorId === user.id) && (
+            <h1 className="text-4xl font-bold text-text-primary">{articleDetail.title}</h1>
+            {user && (user.role === 'admin' || articleDetail.authorId === user.id) && (
               <div className="flex gap-2">
                 <Link
-                  href={`/articles/${article.slug}/edit`}
+                  href={`/articles/${articleDetail.slug}/edit`}
                   className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-all text-sm font-medium hover:shadow-md"
                 >
                   수정
                 </Link>
-                <DeleteButton articleId={article.id} articleSlug={article.slug} />
+                <DeleteButton articleId={articleDetail.id} articleSlug={articleDetail.slug} />
               </div>
             )}
           </div>
           <div className="text-sm mb-8 text-text-secondary">
-            작성일: {new Date(article.createdAt).toLocaleDateString('ko-KR')}
-            {article.updatedAt !== article.createdAt && (
+            작성일: {new Date(articleDetail.createdAt).toLocaleDateString('ko-KR')}
+            {articleDetail.updatedAt !== articleDetail.createdAt && (
               <span className="ml-4">
-                수정일: {new Date(article.updatedAt).toLocaleDateString('ko-KR')}
+                수정일: {new Date(articleDetail.updatedAt).toLocaleDateString('ko-KR')}
               </span>
             )}
           </div>
 
-          <div
-            className="prose prose-lg max-w-none text-text-primary"
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
-          />
+          <ArticleContentWithPreview htmlContent={htmlContent} />
 
           {/* 관련 링크 섹션 */}
           <div className="mt-12 pt-8 border-t border-divider">
-            {(article.outgoingLinks.length > 0 || article.incomingLinks.length > 0) ? (
+            {(articleDetail.outgoingLinks.length > 0 || articleDetail.incomingLinks.length > 0) ? (
               <>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-text-primary">관련 글</h2>
@@ -249,7 +255,7 @@ export default async function ArticlePage({ params }: PageProps) {
                     이 글에서 참조하는 글:
                   </h3>
                   <ul className="list-disc list-inside space-y-2">
-                    {article.outgoingLinks.map((link: ArticleLinkWithToArticle) => (
+                    {articleDetail.outgoingLinks.map((link: ArticleLinkWithToArticle) => (
                       <li key={link.id} className="flex items-center gap-2 flex-wrap">
                         <Link
                           href={`/articles/${link.toArticle.slug}`}
@@ -261,7 +267,7 @@ export default async function ArticlePage({ params }: PageProps) {
                           ({link.keyword})
                         </span>
                                 <RelationTypeSelector
-                                  fromArticleId={article.id}
+                                  fromArticleId={articleDetail.id}
                                   toArticleId={link.toArticle.id}
                                   keyword={link.keyword}
                                   currentType={link.relationType as RelationType}
@@ -272,13 +278,13 @@ export default async function ArticlePage({ params }: PageProps) {
                 </div>
               )}
 
-              {article.incomingLinks.length > 0 && (
+              {articleDetail.incomingLinks.length > 0 && (
                 <div>
                   <h3 className="text-lg font-semibold mb-2 text-text-primary">
                     이 글을 참조하는 글:
                   </h3>
                   <ul className="list-disc list-inside space-y-1">
-                    {article.incomingLinks.map((link: ArticleLinkWithFromArticle) => (
+                    {articleDetail.incomingLinks.map((link: ArticleLinkWithFromArticle) => (
                       <li key={link.id} className="flex items-center gap-2">
                         <Link
                           href={`/articles/${link.fromArticle.slug}`}
