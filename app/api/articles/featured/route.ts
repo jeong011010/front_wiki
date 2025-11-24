@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
           title: article.title,
           slug: article.slug,
           category: article.category ? article.category.name : null,
+          categorySlug: article.category ? article.category.slug : null,
           createdAt: article.createdAt,
           updatedAt: article.updatedAt,
           content: article.content,
@@ -88,6 +89,7 @@ export async function GET(request: NextRequest) {
         title: article.title,
         slug: article.slug,
         category: article.category ? article.category.name : null,
+        categorySlug: article.category ? article.category.slug : null,
         createdAt: article.createdAt,
         updatedAt: article.updatedAt,
         content: article.content,
@@ -102,12 +104,12 @@ export async function GET(request: NextRequest) {
         .substring(0, 150) // 150자로 제한
         .trim()
       
-      // category는 이미 string | null로 변환되어 있음
       return {
         id: article.id,
         title: article.title,
         slug: article.slug,
         category: article.category,
+        categorySlug: article.categorySlug,
         createdAt: article.createdAt,
         updatedAt: article.updatedAt,
         preview,

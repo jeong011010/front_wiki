@@ -9,6 +9,7 @@ interface ArticleCardProps {
     title: string
     slug: string
     category: string | null
+    categorySlug?: string | null
     createdAt: Date | string
     updatedAt: Date | string
     preview?: string
@@ -16,16 +17,88 @@ interface ArticleCardProps {
 }
 
 const categoryColors: Record<string, { bg: string; text: string }> = {
-  frontend: { bg: 'bg-blue-100 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-300' },
-  backend: { bg: 'bg-green-100 dark:bg-green-900/20', text: 'text-green-700 dark:text-green-300' },
-  cloud: { bg: 'bg-purple-100 dark:bg-purple-900/20', text: 'text-purple-700 dark:text-purple-300' },
-  devops: { bg: 'bg-orange-100 dark:bg-orange-900/20', text: 'text-orange-700 dark:text-orange-300' },
-  general: { bg: 'bg-gray-100 dark:bg-gray-900/20', text: 'text-gray-700 dark:text-gray-300' },
+  // 대분류 카테고리 (영어 slug)
+  // 라이트 모드: 밝은 배경 + 진한 텍스트
+  // 다크 모드: 진한 배경 + 밝은 텍스트 (가독성 향상)
+  frontend: { 
+    bg: 'bg-blue-100 dark:bg-blue-800/80', 
+    text: 'text-blue-900 dark:text-blue-50 font-semibold' 
+  },
+  backend: { 
+    bg: 'bg-green-100 dark:bg-green-800/80', 
+    text: 'text-green-900 dark:text-green-50 font-semibold' 
+  },
+  cloud: { 
+    bg: 'bg-purple-100 dark:bg-purple-800/80', 
+    text: 'text-purple-900 dark:text-purple-50 font-semibold' 
+  },
+  devops: { 
+    bg: 'bg-orange-100 dark:bg-orange-800/80', 
+    text: 'text-orange-900 dark:text-orange-50 font-semibold' 
+  },
+  general: { 
+    bg: 'bg-gray-100 dark:bg-gray-700/80', 
+    text: 'text-gray-900 dark:text-gray-50 font-semibold' 
+  },
+  // 프론트엔드 하위 카테고리
+  react: { 
+    bg: 'bg-blue-100 dark:bg-blue-800/80', 
+    text: 'text-blue-900 dark:text-blue-50 font-semibold' 
+  },
+  nextjs: { 
+    bg: 'bg-blue-100 dark:bg-blue-800/80', 
+    text: 'text-blue-900 dark:text-blue-50 font-semibold' 
+  },
+  // 한글 slug (혹시 모를 경우 대비)
+  '프론트엔드': { 
+    bg: 'bg-blue-100 dark:bg-blue-800/80', 
+    text: 'text-blue-900 dark:text-blue-50 font-semibold' 
+  },
+  '백엔드': { 
+    bg: 'bg-green-100 dark:bg-green-800/80', 
+    text: 'text-green-900 dark:text-green-50 font-semibold' 
+  },
+  '클라우드': { 
+    bg: 'bg-purple-100 dark:bg-purple-800/80', 
+    text: 'text-purple-900 dark:text-purple-50 font-semibold' 
+  },
 }
 
 export default function ArticleCard({ article }: ArticleCardProps) {
-  const categoryColor = article.category 
-    ? categoryColors[article.category] || categoryColors.general
+  // categorySlug를 사용하여 색상 매칭, 없으면 category로 fallback
+  let categoryKey = article.categorySlug || article.category || ''
+  
+  // categoryKey를 소문자로 변환하여 매칭 (대소문자 구분 없이)
+  if (categoryKey) {
+    categoryKey = categoryKey.toLowerCase()
+  }
+  
+  // 카테고리 이름에서 slug 추출 시도 (한글 이름인 경우)
+  if (!categoryKey && article.category) {
+    const categoryName = article.category.toLowerCase()
+    // 한글 카테고리 이름을 영어 slug로 매핑
+    const nameToSlug: Record<string, string> = {
+      '프론트엔드': 'frontend',
+      '백엔드': 'backend',
+      '클라우드': 'cloud',
+      'devops': 'devops',
+      '일반': 'general',
+    }
+    categoryKey = nameToSlug[categoryName] || categoryName
+  }
+  
+  // 디버깅: 카테고리 정보 확인 (개발 환경에서만, 매칭 실패 시에만)
+  if (process.env.NODE_ENV === 'development' && article.category && !categoryColors[categoryKey] && categoryKey !== 'general') {
+    console.warn('카테고리 색상 매칭 실패:', {
+      category: article.category,
+      categorySlug: article.categorySlug,
+      categoryKey,
+      availableKeys: Object.keys(categoryColors)
+    })
+  }
+  
+  const categoryColor = categoryKey 
+    ? categoryColors[categoryKey] || categoryColors.general
     : categoryColors.general
 
   const preview = article.preview || article.title

@@ -8,6 +8,7 @@ interface Article {
   title: string
   slug: string
   category: string | null
+  categorySlug?: string | null
   createdAt: string
   updatedAt: string
   preview?: string
