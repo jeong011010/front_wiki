@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import ArticleFilterBar from './ArticleFilterBar'
 import ArticleCard from './ArticleCard'
 import ArticleListModal from './ArticleListModal'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface Article {
   id: string
@@ -38,7 +38,8 @@ export default function FilteredArticles() {
       
       if (filtersChanged) {
         setIsFiltering(true)
-        setLoading(true)
+        // 기존 카드를 유지하기 위해 loading은 false로 유지
+        // setLoading(true)를 호출하지 않음
       }
       
       try {
@@ -62,6 +63,7 @@ export default function FilteredArticles() {
         const response = await fetch(url)
         if (response.ok) {
           const data = await response.json()
+          // 새 데이터를 받은 후에만 업데이트
           setArticles(Array.isArray(data) ? data : data.articles || [])
         }
       } catch (error) {
@@ -95,25 +97,40 @@ export default function FilteredArticles() {
         onSearchChange={setSearchQuery}
       />
 
-      {loading || isFiltering ? (
+      {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-surface border border-border rounded-lg p-6 animate-pulse">
+            <div key={i} className="bg-surface border border-border rounded-lg p-6 animate-pulse" style={{ minHeight: '220px' }}>
               <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
             </div>
           ))}
         </div>
-      ) : articles.length > 0 ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
+      ) : (
+        <div className="relative">
+          {/* 필터링 중일 때 스켈레톤 오버레이 */}
+          {isFiltering && (
+            <div className="absolute inset-0 z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-none">
+              {[...Array(6)].map((_, i) => (
+                <div key={`skeleton-${i}`} className="bg-surface/90 backdrop-blur-sm border border-border rounded-lg p-6 animate-pulse" style={{ minHeight: '220px' }}>
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* 기존 카드들 - 필터링 중에도 완전히 유지 (높이 고정) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {articles.map((article, index) => (
               <motion.div
                 key={article.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
+                initial={false}
+                animate={{ opacity: isFiltering ? 0.3 : 1 }}
+                transition={{ duration: 0.15 }}
+                style={{ minHeight: '220px' }}
               >
                 <ArticleCard article={article} />
               </motion.div>
@@ -121,18 +138,22 @@ export default function FilteredArticles() {
           </div>
           
           {/* 더보기 버튼 - 우측 하단 */}
-          <div className="flex justify-end mt-6">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-lg"
-            >
-              더보기 →
-            </button>
-          </div>
-        </>
-      ) : (
-        <div className="text-center py-12 bg-surface border border-border rounded-lg">
-          <p className="text-text-secondary">표시할 글이 없습니다.</p>
+          {articles.length > 0 && !isFiltering && (
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-lg"
+              >
+                더보기 →
+              </button>
+            </div>
+          )}
+          
+          {articles.length === 0 && !isFiltering && (
+            <div className="text-center py-12 bg-surface border border-border rounded-lg">
+              <p className="text-text-secondary">표시할 글이 없습니다.</p>
+            </div>
+          )}
         </div>
       )}
 

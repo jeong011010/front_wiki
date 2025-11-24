@@ -39,7 +39,8 @@ export default function ArticleCard({ article }: ArticleCardProps) {
     >
       <Link
         href={`/articles/${article.slug}`}
-        className="block bg-surface border border-border rounded-lg p-6 hover:shadow-lg transition-all hover:border-primary-300 group"
+        className="block bg-surface border border-border rounded-lg p-6 hover:shadow-lg transition-all hover:border-primary-300 group h-full"
+        style={{ minHeight: '220px', display: 'flex', flexDirection: 'column' }}
       >
         <div className="flex items-start justify-between mb-3">
           <h3 className="text-xl font-semibold text-text-primary group-hover:text-primary-500 transition-colors line-clamp-2 flex-1">
@@ -53,12 +54,12 @@ export default function ArticleCard({ article }: ArticleCardProps) {
         </div>
         
         {preview && (
-          <p className="text-text-secondary text-sm mb-4 line-clamp-3">
+          <p className="text-text-secondary text-sm mb-4 line-clamp-3 flex-1">
             {preview}
           </p>
         )}
         
-        <div className="flex items-center justify-between text-xs text-text-tertiary">
+        <div className="flex items-center justify-between text-xs text-text-tertiary mt-auto">
           <span>
             {new Date(article.createdAt).toLocaleDateString('ko-KR', {
               year: 'numeric',
