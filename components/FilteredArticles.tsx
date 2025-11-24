@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useLayoutEffect, useRef } from 'react'
 import ArticleFilterBar from './ArticleFilterBar'
 import ArticleCard from './ArticleCard'
 import ArticleListModal from './ArticleListModal'
@@ -23,9 +23,13 @@ export default function FilteredArticles() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const fetchArticles = async () => {
+      // 스크롤 위치 저장
+      const scrollTop = containerRef.current?.scrollTop || window.scrollY
+      
       setLoading(true)
       
       try {
@@ -49,11 +53,23 @@ export default function FilteredArticles() {
         const response = await fetch(url)
         if (response.ok) {
           const data = await response.json()
-          setArticles(Array.isArray(data) ? data : data.articles || [])
+          const newArticles = Array.isArray(data) ? data : data.articles || []
+          
+          // 상태 업데이트를 동기적으로 처리
+          setArticles(newArticles)
+          setLoading(false)
+          
+          // 스크롤 위치 복원 (다음 프레임에서)
+          requestAnimationFrame(() => {
+            if (containerRef.current) {
+              containerRef.current.scrollTop = scrollTop
+            } else {
+              window.scrollTo(0, scrollTop)
+            }
+          })
         }
       } catch (error) {
         console.error('Failed to fetch articles:', error)
-      } finally {
         setLoading(false)
       }
     }
@@ -62,7 +78,7 @@ export default function FilteredArticles() {
   }, [selectedCategory, sortBy, includeSubcategories, searchQuery])
 
   return (
-    <section>
+    <section ref={containerRef}>
       <ArticleFilterBar
         selectedCategory={selectedCategory}
         sortBy={sortBy}
