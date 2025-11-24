@@ -107,6 +107,51 @@ DATABASE_URL="file:./prisma/dev.db"
 NEXT_PUBLIC_SITE_URL="http://localhost:3000"  # 프로덕션에서는 실제 도메인으로 변경
 ```
 
+**S3 이미지 업로드 설정 (선택사항):**
+프로덕션 환경에서는 AWS S3를 사용하여 이미지를 저장할 수 있습니다. S3를 사용하지 않으면 로컬 파일 시스템(`public/uploads`)에 저장됩니다.
+
+```env
+# AWS S3 설정
+AWS_ACCESS_KEY_ID="your-access-key-id"
+AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+AWS_REGION="ap-northeast-2"  # 기본값: 서울 리전
+AWS_S3_BUCKET_NAME="your-bucket-name"
+
+# CloudFront URL (선택사항 - CDN 사용 시)
+AWS_CLOUDFRONT_URL="https://your-cloudfront-domain.cloudfront.net"
+```
+
+**S3 버킷 설정:**
+1. AWS S3에서 버킷 생성
+2. 버킷 정책에서 공개 읽기 권한 설정:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::your-bucket-name/images/*"
+    }
+  ]
+}
+```
+3. CORS 설정 (필요한 경우):
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "PUT", "POST"],
+    "AllowedOrigins": ["*"],
+    "ExposeHeaders": []
+  }
+]
+```
+
+> 💡 **참고**: `.env.example` 파일을 참고하여 필요한 환경 변수를 설정하세요.
+
 4. **데이터베이스 마이그레이션**
 ```bash
 npx prisma migrate dev
