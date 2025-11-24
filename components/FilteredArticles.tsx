@@ -20,13 +20,19 @@ export default function FilteredArticles() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'title'>('recent')
   const [includeSubcategories, setIncludeSubcategories] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isSorting, setIsSorting] = useState(false)
 
   useEffect(() => {
     const fetchArticles = async () => {
-      setLoading(true)
+      // 정렬 변경 시에만 스켈레톤 표시
+      if (isSorting) {
+        setLoading(true)
+      }
+      
       try {
         let url = '/api/articles'
         const params = new URLSearchParams()
@@ -36,6 +42,9 @@ export default function FilteredArticles() {
           if (includeSubcategories) {
             params.append('includeSubcategories', 'true')
           }
+        }
+        if (searchQuery.trim()) {
+          params.append('search', searchQuery.trim())
         }
         params.append('sort', sortBy)
         params.append('limit', '6')
@@ -51,11 +60,17 @@ export default function FilteredArticles() {
         console.error('Failed to fetch articles:', error)
       } finally {
         setLoading(false)
+        setIsSorting(false)
       }
     }
 
     fetchArticles()
-  }, [selectedCategory, sortBy, includeSubcategories])
+  }, [selectedCategory, sortBy, includeSubcategories, searchQuery])
+
+  const handleSortChange = (sort: 'recent' | 'popular' | 'title') => {
+    setIsSorting(true)
+    setSortBy(sort)
+  }
 
   return (
     <section>
@@ -63,12 +78,14 @@ export default function FilteredArticles() {
         selectedCategory={selectedCategory}
         sortBy={sortBy}
         includeSubcategories={includeSubcategories}
+        searchQuery={searchQuery}
         onCategoryChange={setSelectedCategory}
-        onSortChange={setSortBy}
+        onSortChange={handleSortChange}
         onIncludeSubcategoriesChange={setIncludeSubcategories}
+        onSearchChange={setSearchQuery}
       />
 
-      {loading ? (
+      {loading || isSorting ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="bg-surface border border-border rounded-lg p-6 animate-pulse">
@@ -114,6 +131,7 @@ export default function FilteredArticles() {
           category={selectedCategory}
           sortBy={sortBy}
           includeSubcategories={includeSubcategories}
+          searchQuery={searchQuery}
           onClose={() => setIsModalOpen(false)}
         />
       )}

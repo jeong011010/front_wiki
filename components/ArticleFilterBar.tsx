@@ -18,9 +18,11 @@ interface ArticleFilterBarProps {
   selectedCategory: string | null
   sortBy: 'recent' | 'popular' | 'title'
   includeSubcategories: boolean
+  searchQuery: string
   onCategoryChange: (category: string | null) => void
   onSortChange: (sort: 'recent' | 'popular' | 'title') => void
   onIncludeSubcategoriesChange: (include: boolean) => void
+  onSearchChange: (query: string) => void
 }
 
 // 최대 3단계까지만 렌더링하는 헬퍼 함수
@@ -44,15 +46,17 @@ export default function ArticleFilterBar({
   selectedCategory,
   sortBy,
   includeSubcategories,
+  searchQuery,
   onCategoryChange,
   onSortChange,
   onIncludeSubcategoriesChange,
+  onSearchChange,
 }: ArticleFilterBarProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedMainCategory, setSelectedMainCategory] = useState<Category | null>(null)
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+  const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set())
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
+  const [categorySearchQuery, setCategorySearchQuery] = useState('')
 
   // 대분류 카테고리들 (parentId가 null인 카테고리)
   const mainCategories = useMemo(() => {
@@ -74,23 +78,21 @@ export default function ArticleFilterBar({
             const findMainCategory = (cats: Category[], targetSlug: string): Category | null => {
               for (const cat of cats) {
                 if (cat.slug === targetSlug) {
-                  // 선택된 카테고리가 대분류인 경우
                   return cat
                 }
-                // 하위 카테고리인 경우 대분류 찾기
-                const findInChildren = (children: Category[]): Category | null => {
-                  for (const child of children) {
-                    if (child.slug === targetSlug) {
-                      return cat // 부모 대분류 반환
-                    }
-                    if (child.children && child.children.length > 0) {
-                      const found = findInChildren(child.children)
-                      if (found) return found
-                    }
-                  }
-                  return null
-                }
                 if (cat.children && cat.children.length > 0) {
+                  const findInChildren = (children: Category[]): Category | null => {
+                    for (const child of children) {
+                      if (child.slug === targetSlug) {
+                        return cat
+                      }
+                      if (child.children && child.children.length > 0) {
+                        const found = findInChildren(child.children)
+                        if (found) return found
+                      }
+                    }
+                    return null
+                  }
                   const found = findInChildren(cat.children)
                   if (found) return found
                 }
@@ -100,8 +102,6 @@ export default function ArticleFilterBar({
             const mainCat = findMainCategory(limitedData, selectedCategory)
             if (mainCat) {
               setSelectedMainCategory(mainCat)
-              // 선택된 카테고리의 경로 자동 펼치기
-              expandCategoryPath(mainCat, selectedCategory)
             }
           }
         }
@@ -112,53 +112,6 @@ export default function ArticleFilterBar({
 
     fetchCategories()
   }, [selectedCategory])
-
-  // 선택된 카테고리의 경로를 자동으로 펼치기
-  const expandCategoryPath = (mainCat: Category, targetSlug: string, path: string[] = []): void => {
-    const newPath = [...path, mainCat.id]
-    if (mainCat.slug === targetSlug) {
-      newPath.forEach((id) => {
-        setExpandedCategories((prev) => new Set(prev).add(id))
-      })
-      return
-    }
-    if (mainCat.children && mainCat.children.length > 0) {
-      mainCat.children.forEach((child) => {
-        expandCategoryPath(child, targetSlug, newPath)
-      })
-    }
-  }
-
-  // 선택된 대분류의 하위 카테고리만 필터링
-  const subCategories = useMemo(() => {
-    if (!selectedMainCategory) return []
-    
-    // 검색어가 있으면 필터링
-    if (searchQuery.trim()) {
-      const searchLower = searchQuery.toLowerCase()
-      const filterTree = (cats: Category[]): Category[] => {
-        return cats
-          .map((cat) => {
-            const matchesSearch = cat.name.toLowerCase().includes(searchLower)
-            const filteredChildren = cat.children && cat.children.length > 0 
-              ? filterTree(cat.children) 
-              : []
-
-            if (matchesSearch || filteredChildren.length > 0) {
-              return {
-                ...cat,
-                children: filteredChildren,
-              }
-            }
-            return null
-          })
-          .filter((cat): cat is Category => cat !== null)
-      }
-      return filterTree(selectedMainCategory.children || [])
-    }
-    
-    return selectedMainCategory.children || []
-  }, [selectedMainCategory, searchQuery])
 
   // 선택된 카테고리의 전체 경로 찾기
   const getCategoryPath = (cat: Category, targetSlug: string, path: Category[] = []): Category[] | null => {
@@ -185,99 +138,216 @@ export default function ArticleFilterBar({
     ? selectedMainCategory.name
     : '전체'
 
-  const toggleCategory = (categoryId: string) => {
-    setExpandedCategories((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(categoryId)) {
-        newSet.delete(categoryId)
-      } else {
-        newSet.add(categoryId)
-      }
-      return newSet
-    })
-  }
-
   const handleMainCategoryClick = (mainCat: Category) => {
     setSelectedMainCategory(mainCat)
-    setIsDropdownOpen(true)
-    setSearchQuery('')
-    setExpandedCategories(new Set())
+    setOpenDropdowns(new Set([mainCat.id]))
+    setCategorySearchQuery('')
   }
 
-  const renderCategoryTree = (cats: Category[], level: number = 0): React.ReactElement[] => {
-    return cats.map((category) => {
-      const hasChildren = category.children && category.children.length > 0
-      const isExpanded = expandedCategories.has(category.id)
-      const isSelected = selectedCategory === category.slug
+  const handleCategoryHover = (categoryId: string, hasChildren: boolean) => {
+    if (hasChildren) {
+      setHoveredCategory(categoryId)
+      setOpenDropdowns((prev) => new Set(prev).add(categoryId))
+    }
+  }
 
-      return (
-        <div key={category.id}>
-          <button
-            onClick={() => {
-              onCategoryChange(category.slug)
-              setIsDropdownOpen(false)
-            }}
-            className={`w-full text-left px-4 py-2 hover:bg-secondary-300 transition-colors flex items-center gap-2 ${
-              isSelected
-                ? 'bg-primary-500 text-white'
-                : 'text-text-primary'
-            }`}
-            style={{ paddingLeft: `${1 + level * 1.5}rem` }}
-          >
-            {hasChildren && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  toggleCategory(category.id)
+  const handleCategoryLeave = () => {
+    // 약간의 지연을 두어 드롭다운 간 이동 가능하게
+    setTimeout(() => {
+      setHoveredCategory(null)
+    }, 200)
+  }
+
+  // 검색어로 필터링된 카테고리 트리 생성
+  const getFilteredCategories = (cats: Category[]): Category[] => {
+    if (!categorySearchQuery.trim()) {
+      return cats
+    }
+
+    const searchLower = categorySearchQuery.toLowerCase()
+    const filterTree = (categoryList: Category[]): Category[] => {
+      return categoryList
+        .map((cat) => {
+          const matchesSearch = cat.name.toLowerCase().includes(searchLower)
+          const filteredChildren = cat.children && cat.children.length > 0 
+            ? filterTree(cat.children) 
+            : []
+
+          if (matchesSearch || filteredChildren.length > 0) {
+            return {
+              ...cat,
+              children: filteredChildren,
+            }
+          }
+          return null
+        })
+        .filter((cat): cat is Category => cat !== null)
+    }
+    return filterTree(cats)
+  }
+
+  // 드롭다운 렌더링 (재귀적)
+  const renderDropdown = (category: Category, level: number = 0, parentPosition?: { top: number; left: number }): React.ReactElement => {
+    const isOpen = openDropdowns.has(category.id) || hoveredCategory === category.id
+    const hasChildren = category.children && category.children.length > 0
+    const filteredChildren = hasChildren ? getFilteredCategories(category.children) : []
+    const isSelected = selectedCategory === category.slug
+
+    return (
+      <div key={category.id} className="relative">
+        <AnimatePresence>
+          {isOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => {
+                  setOpenDropdowns(new Set())
+                  setHoveredCategory(null)
                 }}
-                className="flex-shrink-0 w-4 h-4 flex items-center justify-center"
-              >
-                <svg
-                  className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            )}
-            {!hasChildren && <span className="w-4" />}
-            <span className="flex-1">{category.name}</span>
-            {category.articleCount > 0 && (
-              <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-text-tertiary'}`}>
-                ({category.articleCount})
-              </span>
-            )}
-          </button>
-          <AnimatePresence>
-            {hasChildren && isExpanded && (
+                style={{ zIndex: 10 + level }}
+              />
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="absolute bg-surface border border-border rounded-lg shadow-xl z-20 min-w-[280px] max-w-[400px] max-h-[600px] flex flex-col"
+                style={{
+                  top: level === 0 ? '100%' : 0,
+                  left: level === 0 ? 0 : '100%',
+                  marginTop: level === 0 ? '0.5rem' : 0,
+                  marginLeft: level > 0 ? '0.5rem' : 0,
+                  zIndex: 20 + level,
+                }}
+                onMouseEnter={() => handleCategoryHover(category.id, hasChildren)}
+                onMouseLeave={handleCategoryLeave}
               >
-                {renderCategoryTree(category.children, level + 1)}
+                {/* 검색 바 (첫 번째 레벨만) */}
+                {level === 0 && (
+                  <div className="p-3 border-b border-border">
+                    <input
+                      type="text"
+                      placeholder="카테고리 검색..."
+                      value={categorySearchQuery}
+                      onChange={(e) => setCategorySearchQuery(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                )}
+
+                {/* 카테고리 목록 */}
+                <div className="overflow-y-auto flex-1 p-2">
+                  {/* 대분류 자체도 선택 가능 (첫 번째 레벨만) */}
+                  {level === 0 && (
+                    <button
+                      onClick={() => {
+                        onCategoryChange(category.slug)
+                        setOpenDropdowns(new Set())
+                        setHoveredCategory(null)
+                      }}
+                      className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center justify-between ${
+                        isSelected
+                          ? 'bg-primary-500 text-white'
+                          : 'hover:bg-secondary-300 text-text-primary'
+                      }`}
+                    >
+                      <span className="font-medium">{category.name}</span>
+                      {category.articleCount > 0 && (
+                        <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-text-tertiary'}`}>
+                          ({category.articleCount})
+                        </span>
+                      )}
+                    </button>
+                  )}
+
+                  {/* 하위 카테고리들 */}
+                  {filteredChildren.length > 0 ? (
+                    filteredChildren.map((child) => {
+                      const childIsSelected = selectedCategory === child.slug
+                      const childHasChildren = child.children && child.children.length > 0
+
+                      return (
+                        <div
+                          key={child.id}
+                          className="relative"
+                          onMouseEnter={() => handleCategoryHover(child.id, childHasChildren)}
+                          onMouseLeave={handleCategoryLeave}
+                        >
+                          <button
+                            onClick={() => {
+                              onCategoryChange(child.slug)
+                              setOpenDropdowns(new Set())
+                              setHoveredCategory(null)
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center justify-between group ${
+                              childIsSelected
+                                ? 'bg-primary-500 text-white'
+                                : 'hover:bg-secondary-300 text-text-primary'
+                            }`}
+                          >
+                            <span>{child.name}</span>
+                            <div className="flex items-center gap-2">
+                              {child.articleCount > 0 && (
+                                <span className={`text-xs ${childIsSelected ? 'text-white/70' : 'text-text-tertiary'}`}>
+                                  ({child.articleCount})
+                                </span>
+                              )}
+                              {childHasChildren && (
+                                <svg
+                                  className="w-4 h-4 text-text-tertiary group-hover:text-text-primary"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              )}
+                            </div>
+                          </button>
+                          {childHasChildren && hoveredCategory === child.id && (
+                            <div className="absolute top-0 left-full ml-2">
+                              {renderDropdown(child, level + 1)}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="px-4 py-8 text-center text-text-secondary">
+                      {categorySearchQuery ? '검색 결과가 없습니다.' : '하위 카테고리가 없습니다.'}
+                    </div>
+                  )}
+                </div>
               </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )
-    })
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+    )
   }
 
   return (
     <div className="bg-surface border border-border rounded-lg p-4 mb-6">
       <div className="flex flex-wrap items-center gap-4">
+        {/* 검색 바 */}
+        <div className="flex-1 min-w-[250px]">
+          <input
+            type="text"
+            placeholder="카테고리 전체에서 검색..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="w-full px-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+          />
+        </div>
+
         {/* 대분류 버튼들 */}
-        <div className="flex flex-wrap gap-2 flex-1">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => {
               setSelectedMainCategory(null)
               onCategoryChange(null)
-              setIsDropdownOpen(false)
+              setOpenDropdowns(new Set())
+              setHoveredCategory(null)
             }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               selectedMainCategory === null
@@ -288,119 +358,33 @@ export default function ArticleFilterBar({
             전체
           </button>
           {mainCategories.map((mainCat) => (
-            <button
-              key={mainCat.id}
-              onClick={() => handleMainCategoryClick(mainCat)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${
-                selectedMainCategory?.id === mainCat.id
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-secondary-300 text-text-primary hover:bg-secondary-500'
-              }`}
-            >
-              {mainCat.name}
-              {mainCat.articleCount > 0 && (
-                <span className={`ml-2 text-xs ${selectedMainCategory?.id === mainCat.id ? 'text-white/70' : 'text-text-tertiary'}`}>
-                  ({mainCat.articleCount})
-                </span>
+            <div key={mainCat.id} className="relative">
+              <button
+                onClick={() => handleMainCategoryClick(mainCat)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${
+                  selectedMainCategory?.id === mainCat.id
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-secondary-300 text-text-primary hover:bg-secondary-500'
+                }`}
+              >
+                {mainCat.name}
+                {mainCat.articleCount > 0 && (
+                  <span className={`ml-2 text-xs ${selectedMainCategory?.id === mainCat.id ? 'text-white/70' : 'text-text-tertiary'}`}>
+                    ({mainCat.articleCount})
+                  </span>
+                )}
+              </button>
+              {selectedMainCategory?.id === mainCat.id && (
+                renderDropdown(mainCat, 0)
               )}
-            </button>
+            </div>
           ))}
         </div>
 
-        {/* 선택된 대분류의 하위 카테고리 드롭다운 */}
-        {selectedMainCategory && (
-          <div className="relative">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 px-4 py-2 bg-secondary-300 text-text-primary rounded-lg hover:bg-secondary-500 transition-colors font-medium"
-            >
-              <span className="truncate max-w-[200px]">
-                {selectedCategoryName}
-              </span>
-              <svg
-                className={`w-4 h-4 transition-transform flex-shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            <AnimatePresence>
-              {isDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setIsDropdownOpen(false)}
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full left-0 mt-2 bg-surface border border-border rounded-lg shadow-lg z-20 w-full max-w-md max-h-[500px] flex flex-col"
-                  >
-                    {/* 검색 바 */}
-                    <div className="p-3 border-b border-border">
-                      <input
-                        type="text"
-                        placeholder="카테고리 검색..."
-                        value={searchQuery}
-                        onChange={(e) => {
-                          setSearchQuery(e.target.value)
-                          // 검색 시 관련 카테고리 자동 펼치기
-                          if (e.target.value.trim() && selectedMainCategory) {
-                            const expandMatching = (cats: Category[]) => {
-                              cats.forEach((cat) => {
-                                if (cat.name.toLowerCase().includes(e.target.value.toLowerCase())) {
-                                  setExpandedCategories((prev) => new Set(prev).add(cat.id))
-                                }
-                                if (cat.children && cat.children.length > 0) {
-                                  expandMatching(cat.children)
-                                }
-                              })
-                            }
-                            expandMatching(selectedMainCategory.children || [])
-                          }
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-full px-3 py-2 bg-background border border-border rounded-md text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      />
-                    </div>
-
-                    {/* 카테고리 트리 */}
-                    <div className="overflow-y-auto flex-1">
-                      {/* 대분류 자체도 선택 가능 */}
-                      <button
-                        onClick={() => {
-                          onCategoryChange(selectedMainCategory.slug)
-                          setIsDropdownOpen(false)
-                        }}
-                        className={`w-full text-left px-4 py-2 hover:bg-secondary-300 transition-colors ${
-                          selectedCategory === selectedMainCategory.slug
-                            ? 'bg-primary-500 text-white'
-                            : 'text-text-primary font-medium'
-                        }`}
-                      >
-                        {selectedMainCategory.name}
-                        {selectedMainCategory.articleCount > 0 && (
-                          <span className={`ml-2 text-xs ${selectedCategory === selectedMainCategory.slug ? 'text-white/70' : 'text-text-tertiary'}`}>
-                            ({selectedMainCategory.articleCount})
-                          </span>
-                        )}
-                      </button>
-                      {subCategories.length > 0 ? (
-                        renderCategoryTree(subCategories)
-                      ) : (
-                        <div className="px-4 py-8 text-center text-text-secondary">
-                          {searchQuery ? '검색 결과가 없습니다.' : '하위 카테고리가 없습니다.'}
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+        {/* 선택된 카테고리 표시 */}
+        {selectedCategory && selectedMainCategory && (
+          <div className="px-4 py-2 bg-secondary-300 text-text-primary rounded-lg text-sm font-medium">
+            {selectedCategoryName}
           </div>
         )}
 

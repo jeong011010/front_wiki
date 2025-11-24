@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10', 10)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
     const includeSubcategories = searchParams.get('includeSubcategories') === 'true'
+    const search = searchParams.get('search')
     
     const user = await getSessionUser()
     
@@ -67,9 +68,22 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    const where = categoryIds
+    let where: any = categoryIds
       ? { ...baseWhere, categoryId: { in: categoryIds } }
       : baseWhere
+    
+    // 검색어 필터 추가
+    if (search && search.trim()) {
+      const searchTerm = search.trim()
+      // SQLite는 case-insensitive 검색을 위해 toLowerCase 사용
+      where = {
+        ...where,
+        OR: [
+          { title: { contains: searchTerm } },
+          { content: { contains: searchTerm } },
+        ],
+      }
+    }
     
     // 정렬 옵션
     let orderBy: { createdAt?: 'asc' | 'desc'; title?: 'asc' | 'desc' } | { _count: { incomingLinks: 'asc' | 'desc' } }
