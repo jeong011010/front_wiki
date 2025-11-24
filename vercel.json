@@ -1,12 +1,7 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run vercel-build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["icn1"],
-  "functions": {
-    "app/api/**/*.ts": {
-      "includeFiles": "prisma/schema.prisma"
-    }
-  }
+  "regions": ["icn1"]
 }
