@@ -150,7 +150,10 @@ export default function FilteredArticles() {
           )}
           
           {articles.length === 0 && !isFiltering && (
-            <div className="text-center py-12 bg-surface border border-border rounded-lg">
+            <div 
+              className="text-center bg-surface border border-border rounded-lg flex items-center justify-center"
+              style={{ height: 'calc(240px * 2 + 1.5rem)', minHeight: 'calc(240px * 2 + 1.5rem)' }}
+            >
               <p className="text-text-secondary">표시할 글이 없습니다.</p>
             </div>
           )}
