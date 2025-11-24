@@ -51,17 +51,39 @@ export async function GET(
       return NextResponse.json<ApiErrorResponse>({ error: 'Article not found' }, { status: 404 })
     }
     
+    // relationType으로 정렬
+    type LinkWithRelation = {
+      relationType: string
+      [key: string]: unknown
+    }
+    
+    const sortedOutgoingLinks = [...(article.outgoingLinks as unknown as LinkWithRelation[])].sort((a, b) => {
+      const order: Record<string, number> = { 'parent-child': 0, 'related': 1, 'reference': 2, 'auto': 3 }
+      return (order[a.relationType] ?? 99) - (order[b.relationType] ?? 99)
+    })
+    
+    const sortedIncomingLinks = [...(article.incomingLinks as unknown as LinkWithRelation[])].sort((a, b) => {
+      const order: Record<string, number> = { 'parent-child': 0, 'related': 1, 'reference': 2, 'auto': 3 }
+      return (order[a.relationType] ?? 99) - (order[b.relationType] ?? 99)
+    })
+    
+    const articleWithSortedLinks = {
+      ...article,
+      outgoingLinks: sortedOutgoingLinks,
+      incomingLinks: sortedIncomingLinks,
+    } as unknown as typeof article & { status: string; authorId: string | null }
+    
     // 비공개 글 체크
-    if (article.status !== 'published') {
+    if (articleWithSortedLinks.status !== 'published') {
       if (!user) {
         return NextResponse.json<ApiErrorResponse>({ error: 'Article not found' }, { status: 404 })
       }
-      if (user.role !== 'admin' && article.authorId !== user.id) {
+      if (user.role !== 'admin' && articleWithSortedLinks.authorId !== user.id) {
         return NextResponse.json<ApiErrorResponse>({ error: 'Article not found' }, { status: 404 })
       }
     }
     
-    return NextResponse.json<ArticleDetailResponse>(article as ArticleDetailResponse)
+    return NextResponse.json<ArticleDetailResponse>(articleWithSortedLinks as unknown as ArticleDetailResponse)
   } catch {
     return NextResponse.json<ApiErrorResponse>({ error: 'Failed to fetch article' }, { status: 500 })
   }
@@ -86,15 +108,14 @@ export async function PUT(
     // 글 조회
     const existingArticle = await prisma.article.findUnique({
       where: { id },
-      select: { authorId: true },
-    })
+    }) as { authorId: string | null } | null
     
     if (!existingArticle) {
       return NextResponse.json<ApiErrorResponse>({ error: 'Article not found' }, { status: 404 })
     }
     
     // 권한 체크 (작성자 또는 관리자만 수정 가능)
-    if (user.role !== 'admin' && existingArticle.authorId !== user.id) {
+    if (user.role !== 'admin' && (existingArticle.authorId ?? null) !== user.id) {
       return NextResponse.json<ApiErrorResponse>(
         { error: '수정 권한이 없습니다.' },
         { status: 403 }
@@ -111,7 +132,7 @@ export async function PUT(
     
     // 글 업데이트 (일반 회원이 수정하면 다시 pending 상태로)
     const updateData: { title?: string; content?: string; status?: string } = { ...data }
-    if (user.role !== 'admin' && existingArticle.authorId === user.id) {
+    if (user.role !== 'admin' && (existingArticle.authorId ?? null) === user.id) {
       updateData.status = 'pending' // 일반 회원이 수정하면 다시 검토 대기
     }
     
@@ -133,7 +154,7 @@ export async function PUT(
               fromArticleId: id,
               toArticleId: link.articleId,
               relationType: 'auto', // 자동 생성된 링크는 "auto" 타입
-            },
+            } as { keyword: string; fromArticleId: string; toArticleId: string; relationType: string },
           }).catch((err) => {
             console.warn('Failed to create link:', err)
             return null
@@ -172,15 +193,14 @@ export async function DELETE(
     // 글 조회
     const existingArticle = await prisma.article.findUnique({
       where: { id },
-      select: { authorId: true },
-    })
+    }) as { authorId: string | null } | null
     
     if (!existingArticle) {
       return NextResponse.json<ApiErrorResponse>({ error: 'Article not found' }, { status: 404 })
     }
     
     // 권한 체크 (작성자 또는 관리자만 삭제 가능)
-    if (user.role !== 'admin' && existingArticle.authorId !== user.id) {
+    if (user.role !== 'admin' && (existingArticle.authorId ?? null) !== user.id) {
       return NextResponse.json<ApiErrorResponse>(
         { error: '삭제 권한이 없습니다.' },
         { status: 403 }

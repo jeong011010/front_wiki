@@ -32,6 +32,8 @@ export type ArticleListItem = ArticleBasic & {
  * Article의 상세 조회용 타입
  */
 export type ArticleDetail = Article & {
+  status: string
+  authorId: string | null
   outgoingLinks: ArticleLinkWithToArticle[]
   incomingLinks: ArticleLinkWithFromArticle[]
 }
@@ -40,6 +42,7 @@ export type ArticleDetail = Article & {
  * ArticleLink와 연결된 toArticle 정보를 포함하는 타입
  */
 export type ArticleLinkWithToArticle = Omit<ArticleLink, 'toArticle'> & {
+  relationType: string
   toArticle: {
     id: string
     title: string
@@ -51,6 +54,7 @@ export type ArticleLinkWithToArticle = Omit<ArticleLink, 'toArticle'> & {
  * ArticleLink와 연결된 fromArticle 정보를 포함하는 타입
  */
 export type ArticleLinkWithFromArticle = Omit<ArticleLink, 'fromArticle'> & {
+  relationType: string
   fromArticle: {
     id: string
     title: string
