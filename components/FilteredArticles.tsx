@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ArticleFilterBar from './ArticleFilterBar'
 import ArticleCard from './ArticleCard'
 import ArticleListModal from './ArticleListModal'
@@ -24,12 +24,20 @@ export default function FilteredArticles() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isSorting, setIsSorting] = useState(false)
+  const [isFiltering, setIsFiltering] = useState(false)
+  const prevFiltersRef = useRef({ selectedCategory, sortBy, includeSubcategories, searchQuery })
 
   useEffect(() => {
     const fetchArticles = async () => {
-      // 정렬 변경 시에만 스켈레톤 표시
-      if (isSorting) {
+      // 필터 변경 시 스켈레톤 표시
+      const filtersChanged = 
+        prevFiltersRef.current.selectedCategory !== selectedCategory ||
+        prevFiltersRef.current.sortBy !== sortBy ||
+        prevFiltersRef.current.includeSubcategories !== includeSubcategories ||
+        prevFiltersRef.current.searchQuery !== searchQuery
+      
+      if (filtersChanged) {
+        setIsFiltering(true)
         setLoading(true)
       }
       
@@ -60,17 +68,19 @@ export default function FilteredArticles() {
         console.error('Failed to fetch articles:', error)
       } finally {
         setLoading(false)
-        setIsSorting(false)
+        setIsFiltering(false)
+        // 현재 필터 상태 저장
+        prevFiltersRef.current = {
+          selectedCategory,
+          sortBy,
+          includeSubcategories,
+          searchQuery,
+        }
       }
     }
 
     fetchArticles()
   }, [selectedCategory, sortBy, includeSubcategories, searchQuery])
-
-  const handleSortChange = (sort: 'recent' | 'popular' | 'title') => {
-    setIsSorting(true)
-    setSortBy(sort)
-  }
 
   return (
     <section>
@@ -80,12 +90,12 @@ export default function FilteredArticles() {
         includeSubcategories={includeSubcategories}
         searchQuery={searchQuery}
         onCategoryChange={setSelectedCategory}
-        onSortChange={handleSortChange}
+        onSortChange={setSortBy}
         onIncludeSubcategoriesChange={setIncludeSubcategories}
         onSearchChange={setSearchQuery}
       />
 
-      {loading || isSorting ? (
+      {loading || isFiltering ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="bg-surface border border-border rounded-lg p-6 animate-pulse">
