@@ -1,9 +1,12 @@
 {
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["icn1"],
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- prisma/"
+  "functions": {
+    "app/api/**/*.ts": {
+      "includeFiles": "prisma/schema.prisma"
+    }
+  }
 }
-
