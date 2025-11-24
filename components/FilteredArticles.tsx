@@ -15,6 +15,9 @@ interface Article {
   preview?: string
 }
 
+// 그리드 높이 계산: 카드 높이(240px) * 2행 + gap(1.5rem = 24px)
+const GRID_HEIGHT = 'calc(240px * 2 + 1.5rem)'
+
 export default function FilteredArticles() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'title'>('recent')
@@ -23,13 +26,9 @@ export default function FilteredArticles() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
     const fetchArticles = async () => {
-      // 스크롤 위치 저장
-      const scrollTop = containerRef.current?.scrollTop || window.scrollY
-      
       setLoading(true)
       
       try {
@@ -55,18 +54,9 @@ export default function FilteredArticles() {
           const data = await response.json()
           const newArticles = Array.isArray(data) ? data : data.articles || []
           
-          // 상태 업데이트를 동기적으로 처리
+          // 상태를 동기적으로 업데이트
           setArticles(newArticles)
           setLoading(false)
-          
-          // 스크롤 위치 복원 (다음 프레임에서)
-          requestAnimationFrame(() => {
-            if (containerRef.current) {
-              containerRef.current.scrollTop = scrollTop
-            } else {
-              window.scrollTo(0, scrollTop)
-            }
-          })
         }
       } catch (error) {
         console.error('Failed to fetch articles:', error)
@@ -78,7 +68,7 @@ export default function FilteredArticles() {
   }, [selectedCategory, sortBy, includeSubcategories, searchQuery])
 
   return (
-    <section ref={containerRef}>
+    <section>
       <ArticleFilterBar
         selectedCategory={selectedCategory}
         sortBy={sortBy}
@@ -90,41 +80,49 @@ export default function FilteredArticles() {
         onSearchChange={setSearchQuery}
       />
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-surface border border-border rounded-lg p-6 animate-pulse" style={{ height: '240px' }}>
-              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-            </div>
-          ))}
-        </div>
-      ) : articles.length > 0 ? (
-        <>
+      {/* 고정 높이 컨테이너로 레이아웃 시프트 완전 방지 */}
+      <div style={{ minHeight: GRID_HEIGHT, height: loading || articles.length > 0 ? GRID_HEIGHT : 'auto' }}>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-surface border border-border rounded-lg p-6 animate-pulse" style={{ height: '240px' }}>
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+              </div>
+            ))}
+          </div>
+        ) : articles.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {articles.map((article) => (
               <div key={article.id} style={{ height: '240px' }}>
                 <ArticleCard article={article} />
               </div>
             ))}
+            {/* 빈 슬롯 채우기 (6개 미만일 때) */}
+            {articles.length < 6 && [...Array(6 - articles.length)].map((_, i) => (
+              <div key={`empty-${i}`} style={{ height: '240px' }} aria-hidden="true" />
+            ))}
           </div>
-          
-          <div className="flex justify-end mt-6">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-lg"
-            >
-              더보기 →
-            </button>
+        ) : (
+          <div 
+            className="text-center bg-surface border border-border rounded-lg flex items-center justify-center"
+            style={{ height: GRID_HEIGHT }}
+          >
+            <p className="text-text-secondary">표시할 글이 없습니다.</p>
           </div>
-        </>
-      ) : (
-        <div 
-          className="text-center bg-surface border border-border rounded-lg flex items-center justify-center"
-          style={{ height: 'calc(240px * 2 + 1.5rem)' }}
-        >
-          <p className="text-text-secondary">표시할 글이 없습니다.</p>
+        )}
+      </div>
+      
+      {/* 더보기 버튼은 그리드 외부에 배치 */}
+      {!loading && articles.length > 0 && (
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-lg"
+          >
+            더보기 →
+          </button>
         </div>
       )}
 
