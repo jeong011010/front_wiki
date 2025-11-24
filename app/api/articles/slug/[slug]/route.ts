@@ -86,7 +86,6 @@ export async function PUT(
     // 기존 링크 삭제
     const article = await prisma.article.findUnique({
       where: { slug },
-      select: { id: true, authorId: true },
     })
     
     if (!article) {
