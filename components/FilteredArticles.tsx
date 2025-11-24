@@ -100,7 +100,7 @@ export default function FilteredArticles() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-surface border border-border rounded-lg p-6 animate-pulse" style={{ minHeight: '220px' }}>
+            <div key={i} className="bg-surface border border-border rounded-lg p-6 animate-pulse" style={{ height: '240px' }}>
               <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
@@ -113,7 +113,7 @@ export default function FilteredArticles() {
           {isFiltering && (
             <div className="absolute inset-0 z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-none">
               {[...Array(6)].map((_, i) => (
-                <div key={`skeleton-${i}`} className="bg-surface/90 backdrop-blur-sm border border-border rounded-lg p-6 animate-pulse" style={{ minHeight: '220px' }}>
+                <div key={`skeleton-${i}`} className="bg-surface/90 backdrop-blur-sm border border-border rounded-lg p-6 animate-pulse" style={{ height: '240px' }}>
                   <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
@@ -130,7 +130,7 @@ export default function FilteredArticles() {
                 initial={false}
                 animate={{ opacity: isFiltering ? 0.3 : 1 }}
                 transition={{ duration: 0.15 }}
-                style={{ minHeight: '220px' }}
+                style={{ height: '240px' }}
               >
                 <ArticleCard article={article} />
               </motion.div>
