@@ -1,46 +1,74 @@
-import { prisma } from '@/lib/prisma'
-import { getSessionUser } from '@/lib/auth'
-import { notFound, redirect } from 'next/navigation'
+'use client'
+
+import { getCurrentUser } from '@/lib/auth-client'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import AutoLinkEditor from '@/components/Editor/AutoLinkEditor'
+import { useEffect, useState } from 'react'
+import { apiGet } from '@/lib/http'
 
-export const dynamic = 'force-dynamic'
-
-interface PageProps {
-  params: Promise<{ slug: string }>
+interface Article {
+  id: string
+  title: string
+  content: string
+  slug: string
+  authorId: string
+  categoryId: string | null
 }
 
-export default async function EditArticlePage({ params }: PageProps) {
-  const { slug } = await params
-  const user = await getSessionUser()
-  
-  if (!user) {
-    redirect(`/auth/login?redirect=/articles/${slug}/edit`)
-  }
-  
-  // Next.js는 이미 URL 파라미터를 디코딩하므로 slug는 이미 "디버깅" 형태
-  // 하지만 혹시 인코딩된 경우를 대비해 처리
-  const decodedSlug = slug.includes('%') ? decodeURIComponent(slug) : slug
-  
-  const article = await prisma.article.findUnique({
-    where: { slug: decodedSlug },
-    select: {
-      id: true,
-      title: true,
-      content: true,
-      slug: true,
-      authorId: true,
-      categoryId: true,
-    },
-  })
+export default function EditArticlePage() {
+  const router = useRouter()
+  const params = useParams()
+  const slug = params?.slug as string
+  const [isChecking, setIsChecking] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [article, setArticle] = useState<Article | null>(null)
 
-  if (!article) {
-    notFound()
+  useEffect(() => {
+    const checkAuthAndLoadArticle = async () => {
+      try {
+        // 인증 확인
+        const user = await getCurrentUser()
+        if (!user) {
+          router.push(`/auth/login?redirect=/articles/${slug}/edit`)
+          return
+        }
+
+        // 글 데이터 로드
+        const decodedSlug = slug.includes('%') ? decodeURIComponent(slug) : slug
+        const articleData = await apiGet<Article>(`/api/articles/slug/${decodedSlug}`)
+
+        // 권한 체크 (작성자 또는 관리자만 수정 가능)
+        if (user.role !== 'admin' && articleData.authorId !== user.id) {
+          router.push('/')
+          return
+        }
+
+        setArticle(articleData)
+        setIsAuthorized(true)
+      } catch (error) {
+        console.error('Error loading article:', error)
+        router.push('/')
+      } finally {
+        setIsChecking(false)
+      }
+    }
+
+    if (slug) {
+      checkAuthAndLoadArticle()
+    }
+  }, [slug, router])
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-text-primary">로딩 중...</div>
+      </div>
+    )
   }
-  
-  // 권한 체크 (작성자 또는 관리자만 수정 가능)
-  if (user.role !== 'admin' && article.authorId !== user.id) {
-    notFound()
+
+  if (!isAuthorized || !article) {
+    return null
   }
 
   return (

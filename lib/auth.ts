@@ -45,27 +45,45 @@ export async function createSession(userId: string): Promise<string> {
 }
 
 /**
- * 세션에서 사용자 정보 가져오기
+ * 세션에서 사용자 정보 가져오기 (JWT 기반)
+ * 서버 컴포넌트에서 사용할 수 있는 인증 함수
+ * 
+ * 주의: 클라이언트의 localStorage에 저장된 토큰은 서버에서 읽을 수 없으므로,
+ * 이 함수는 쿠키나 요청 헤더에서 토큰을 찾습니다.
+ * 클라이언트 컴포넌트에서는 `/api/auth/me` API를 사용하는 것을 권장합니다.
  */
 export async function getSessionUser(): Promise<SessionUser | null> {
   try {
-    const cookieStore = await cookies()
-    const sessionId = cookieStore.get('session')?.value
+    const { headers } = await import('next/headers')
+    const headersList = await headers()
     
-    if (!sessionId) {
+    // Authorization 헤더에서 토큰 추출
+    const authHeader = headersList.get('authorization')
+    let token: string | null = null
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7)
+    } else {
+      // 쿠키에서 토큰 추출 (fallback)
+      const cookieStore = await cookies()
+      token = cookieStore.get('accessToken')?.value || null
+    }
+    
+    if (!token) {
       return null
     }
     
-    // 세션 ID를 사용자 ID로 사용 (실제로는 세션 테이블을 만들어야 하지만 간단하게 구현)
-    // 여기서는 쿠키에 사용자 ID를 직접 저장하는 방식 사용
-    const userId = cookieStore.get('userId')?.value
+    // JWT 토큰 검증
+    const { verifyAccessToken } = await import('./jwt')
+    const payload = verifyAccessToken(token)
     
-    if (!userId) {
+    if (!payload) {
       return null
     }
     
+    // 사용자 정보 조회
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: payload.userId },
       select: {
         id: true,
         email: true,

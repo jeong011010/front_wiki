@@ -1,17 +1,48 @@
-import { getSessionUser } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { getCurrentUser } from '@/lib/auth-client'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ReviewArticleList from '@/components/Admin/ReviewArticleList'
+import { useEffect, useState } from 'react'
 
-export const dynamic = 'force-dynamic' // 쿠키 사용으로 인해 동적 렌더링 필요
+export default function ReviewPage() {
+  const router = useRouter()
+  const [isChecking, setIsChecking] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState(false)
 
-export default async function ReviewPage() {
-  const user = await getSessionUser()
-  
-  if (!user || user.role !== 'admin') {
-    redirect('/')
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const user = await getCurrentUser()
+        if (user && user.role === 'admin') {
+          setIsAuthorized(true)
+        } else {
+          router.push('/')
+        }
+      } catch (error) {
+        console.error('Auth check error:', error)
+        router.push('/')
+      } finally {
+        setIsChecking(false)
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-text-primary">로딩 중...</div>
+      </div>
+    )
   }
-  
+
+  if (!isAuthorized) {
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-surface border-b border-border">
