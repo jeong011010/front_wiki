@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSessionUser } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth-middleware'
 import { z } from 'zod'
 import type { ApiErrorResponse } from '@/types'
 import { slugify } from '@/lib/utils'
@@ -63,14 +63,14 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const user = await getSessionUser()
-    
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json<ApiErrorResponse>(
+    const authResult = await requireAdmin(request)
+    if (authResult.error || !authResult.user) {
+      return authResult.error || NextResponse.json<ApiErrorResponse>(
         { error: '관리자만 카테고리를 수정할 수 있습니다.' },
         { status: 403 }
       )
     }
+    const user = authResult.user
     
     const category = await prisma.category.findUnique({
       where: { id },
