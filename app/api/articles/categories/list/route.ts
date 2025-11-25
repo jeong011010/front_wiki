@@ -1,14 +1,16 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSessionUser } from '@/lib/auth'
+import { authenticateToken } from '@/lib/auth-middleware'
 import type { ApiErrorResponse } from '@/types'
 
 /**
  * GET: 사용 가능한 카테고리 목록 조회
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getSessionUser()
+    // 선택적 인증 (비회원도 조회 가능)
+    const authResult = await authenticateToken(request)
+    const user = authResult.user
     
     // 비회원 또는 일반 회원은 공개된 글만, 관리자는 모든 글
     const where = user?.role === 'admin' 

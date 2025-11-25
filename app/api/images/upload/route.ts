@@ -4,14 +4,14 @@ import { join } from 'path'
 import { existsSync } from 'fs'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getS3Client, getS3BucketName, getS3Url, isS3Configured } from '@/lib/s3'
-import { getSessionUser } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth-middleware'
 
 export async function POST(request: NextRequest) {
   try {
     // 로그인 확인 (이미지 업로드는 로그인한 사용자만 가능)
-    const user = await getSessionUser()
-    if (!user) {
-      return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+    const authResult = await requireAuth(request)
+    if (authResult.error || !authResult.user) {
+      return authResult.error || NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
     }
 
     const formData = await request.formData()

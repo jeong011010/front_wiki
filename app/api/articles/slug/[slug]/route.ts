@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { detectKeywords } from '@/lib/link-detector'
-import { getSessionUser } from '@/lib/auth'
+import { authenticateToken, requireAuth } from '@/lib/auth-middleware'
 import { z } from 'zod'
 import type { ArticleDetailResponse, ArticleUpdateResponse, ArticleDeleteResponse, ApiErrorResponse } from '@/types'
 
@@ -17,7 +17,9 @@ export async function GET(
 ) {
   try {
     const { slug } = await params
-    const user = await getSessionUser()
+    // 선택적 인증 (비회원도 조회 가능)
+    const authResult = await authenticateToken(request)
+    const user = authResult.user
     
     const article = await prisma.article.findUnique({
       where: { slug },
@@ -74,14 +76,14 @@ export async function PUT(
 ) {
   try {
     const { slug } = await params
-    const user = await getSessionUser()
-    
-    if (!user) {
-      return NextResponse.json<ApiErrorResponse>(
+    const authResult = await requireAuth(request)
+    if (authResult.error || !authResult.user) {
+      return authResult.error || NextResponse.json<ApiErrorResponse>(
         { error: '로그인이 필요합니다.' },
         { status: 401 }
       )
     }
+    const user = authResult.user
     
     // 기존 링크 삭제
     const article = await prisma.article.findUnique({
@@ -158,14 +160,14 @@ export async function DELETE(
 ) {
   try {
     const { slug } = await params
-    const user = await getSessionUser()
-    
-    if (!user) {
-      return NextResponse.json<ApiErrorResponse>(
+    const authResult = await requireAuth(request)
+    if (authResult.error || !authResult.user) {
+      return authResult.error || NextResponse.json<ApiErrorResponse>(
         { error: '로그인이 필요합니다.' },
         { status: 401 }
       )
     }
+    const user = authResult.user
     
     const article = await prisma.article.findUnique({
       where: { slug },

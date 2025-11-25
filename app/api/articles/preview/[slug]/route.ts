@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSessionUser } from '@/lib/auth'
+import { authenticateToken } from '@/lib/auth-middleware'
 import type { ApiErrorResponse } from '@/types'
 
 /**
@@ -14,7 +14,9 @@ export async function GET(
   try {
     const { slug } = await params
     const decodedSlug = slug.includes('%') ? decodeURIComponent(slug) : slug
-    const user = await getSessionUser()
+    // 선택적 인증 (비회원도 조회 가능)
+    const authResult = await authenticateToken(request)
+    const user = authResult.user
 
     const article = await prisma.article.findUnique({
       where: { slug: decodedSlug },
