@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken'
-import type { SessionUser } from './auth'
 
 export interface JWTPayload {
   userId: string
@@ -63,6 +62,7 @@ export function generateAccessToken(
     role,
   }
 
+  // @ts-expect-error - jsonwebtoken 타입 정의 문제로 인한 임시 해결
   return jwt.sign(payload, getJwtSecret(), {
     expiresIn: getAccessTokenExpiresIn(),
     issuer: 'front-wiki',
@@ -81,6 +81,7 @@ export function generateRefreshToken(userId: string): string {
     type: 'refresh',
   }
 
+  // @ts-expect-error - jsonwebtoken 타입 정의 문제로 인한 임시 해결
   return jwt.sign(payload, getJwtRefreshSecret(), {
     expiresIn: getRefreshTokenExpiresIn(),
     issuer: 'front-wiki',

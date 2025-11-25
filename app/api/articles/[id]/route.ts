@@ -130,7 +130,6 @@ export async function PUT(
     
     // 카테고리 존재 확인
     if (data.categoryId !== undefined && data.categoryId !== null) {
-      // @ts-expect-error - Prisma Client 타입 캐시 문제로 인한 임시 해결
       const categoryRecord = await prisma.category.findUnique({
         where: { id: data.categoryId },
       })
