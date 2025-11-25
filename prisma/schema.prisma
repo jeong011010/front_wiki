@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  password  String
-  name      String
-  role      String    @default("user")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  articles  Article[]
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          String         @default("user")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  articles      Article[]
+  refreshTokens RefreshToken[]
 
   @@index([email])
 }
@@ -74,4 +75,17 @@ model ArticleLink {
   @@index([toArticleId])
   @@index([keyword])
   @@index([relationType])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique // 해시된 리프레시 토큰
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
 }

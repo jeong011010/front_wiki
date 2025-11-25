@@ -1,16 +1,34 @@
-import { NextResponse } from 'next/server'
-import { logout } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { extractAccessToken, authenticateToken } from '@/lib/auth-middleware'
+import { prisma } from '@/lib/prisma'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    await logout()
-    return NextResponse.json({ success: true })
+    // 액세스 토큰에서 사용자 ID 추출
+    const authResult = await authenticateToken(request)
+
+    if (authResult.user) {
+      // 해당 사용자의 모든 리프레시 토큰 삭제
+      await prisma.refreshToken.deleteMany({
+        where: { userId: authResult.user.id },
+      })
+    }
+
+    // 응답 생성
+    const response = NextResponse.json({ success: true })
+
+    // 쿠키에서 리프레시 토큰 삭제
+    response.cookies.delete('refreshToken')
+
+    return response
   } catch (error) {
     console.error('Logout error:', error)
-    return NextResponse.json(
-      { error: '로그아웃에 실패했습니다.' },
-      { status: 500 }
-    )
+    
+    // 에러가 발생해도 쿠키는 삭제
+    const response = NextResponse.json({ success: true })
+    response.cookies.delete('refreshToken')
+    
+    return response
   }
 }
 

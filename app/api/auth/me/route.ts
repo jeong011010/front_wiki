@@ -1,13 +1,16 @@
-import { NextResponse } from 'next/server'
-import { getSessionUser } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { authenticateToken } from '@/lib/auth-middleware'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getSessionUser()
+    const authResult = await authenticateToken(request)
     
-    if (!user) {
+    if (!authResult.user) {
       return NextResponse.json({ user: null })
     }
+    
+    // 토큰 정보는 제외하고 사용자 정보만 반환
+    const { token, ...user } = authResult.user
     
     return NextResponse.json({ user })
   } catch (error) {
