@@ -1,17 +1,48 @@
+'use client'
+
 import AutoLinkEditor from '@/components/Editor/AutoLinkEditor'
-import { getSessionUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth-client'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
-export const dynamic = 'force-dynamic'
+export default function NewArticlePage() {
+  const router = useRouter()
+  const [isChecking, setIsChecking] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState(false)
 
-export default async function NewArticlePage() {
-  const user = await getSessionUser()
-  
-  if (!user) {
-    redirect('/auth/login?redirect=/articles/new')
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const user = await getCurrentUser()
+        if (user) {
+          setIsAuthorized(true)
+        } else {
+          router.push('/auth/login?redirect=/articles/new')
+        }
+      } catch (error) {
+        console.error('Auth check error:', error)
+        router.push('/auth/login?redirect=/articles/new')
+      } finally {
+        setIsChecking(false)
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-text-primary">로딩 중...</div>
+      </div>
+    )
   }
-  
+
+  if (!isAuthorized) {
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-surface border-b border-border">
