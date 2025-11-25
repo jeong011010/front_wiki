@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { login } from '@/lib/auth-client'
 
 function LoginForm() {
   const router = useRouter()
@@ -21,27 +22,8 @@ function LoginForm() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
-
-      // 응답이 JSON인지 확인
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text()
-        throw new Error(`서버 오류가 발생했습니다. (${response.status})`)
-      }
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || '로그인에 실패했습니다.')
-      }
-
+      await login(email, password)
+      
       // 로그인 성공 시 리다이렉트
       router.push(redirect)
       router.refresh()

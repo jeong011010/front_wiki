@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { register } from '@/lib/auth-client'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -26,27 +27,8 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password }),
-      })
-
-      // 응답이 JSON인지 확인
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text()
-        throw new Error(`서버 오류가 발생했습니다. (${response.status})`)
-      }
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || '회원가입에 실패했습니다.')
-      }
-
+      await register(email, password, name)
+      
       // 회원가입 성공 시 메인 페이지로 이동
       router.push('/')
       router.refresh()
