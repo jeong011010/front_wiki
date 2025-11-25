@@ -87,9 +87,30 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Image upload error:', error)
+    
+    // AWS S3 관련 오류 처리
+    if (error && typeof error === 'object' && 'name' in error) {
+      const awsError = error as { name: string; message: string }
+      if (awsError.name === 'AccessDenied' || awsError.name === 'Forbidden') {
+        return NextResponse.json(
+          { error: 'S3 접근 권한이 없습니다. IAM 사용자 권한을 확인해주세요.' },
+          { status: 403 }
+        )
+      }
+      if (awsError.name === 'NoSuchBucket') {
+        return NextResponse.json(
+          { error: 'S3 버킷을 찾을 수 없습니다. 버킷 이름을 확인해주세요.' },
+          { status: 404 }
+        )
+      }
+    }
+    
     const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
     return NextResponse.json(
-      { error: errorMessage },
+      { 
+        error: '이미지 업로드에 실패했습니다.',
+        message: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     )
   }

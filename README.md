@@ -112,6 +112,8 @@ NEXT_PUBLIC_SITE_URL="http://localhost:3000"  # 프로덕션에서는 실제 도
 **S3 이미지 업로드 설정 (선택사항):**
 프로덕션 환경에서는 AWS S3를 사용하여 이미지를 저장할 수 있습니다. S3를 사용하지 않으면 로컬 파일 시스템(`public/uploads`)에 저장됩니다.
 
+> 📖 **상세 설정 가이드**: [S3 설정 가이드](./docs/S3_SETUP_GUIDE.md) 참고
+
 ```env
 # AWS S3 설정 (최소 필수: 버킷 이름만)
 AWS_S3_BUCKET_NAME="your-bucket-name"
