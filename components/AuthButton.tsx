@@ -3,13 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-
-interface User {
-  id: string
-  email: string
-  name: string
-  role: 'user' | 'admin'
-}
+import { getCurrentUser, logout } from '@/lib/auth-client'
+import type { User } from '@/lib/auth-client'
 
 export default function AuthButton() {
   const router = useRouter()
@@ -22,9 +17,8 @@ export default function AuthButton() {
 
   const fetchUser = async () => {
     try {
-      const response = await fetch('/api/auth/me')
-      const data = await response.json()
-      setUser(data.user)
+      const currentUser = await getCurrentUser()
+      setUser(currentUser)
     } catch (error) {
       console.error('Error fetching user:', error)
     } finally {
@@ -34,7 +28,7 @@ export default function AuthButton() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
+      await logout()
       setUser(null)
       router.push('/')
       router.refresh()

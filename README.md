@@ -107,6 +107,22 @@ npm install
 ```env
 DATABASE_URL="file:./prisma/dev.db"
 NEXT_PUBLIC_SITE_URL="http://localhost:3000"  # 프로덕션에서는 실제 도메인으로 변경
+
+# JWT 인증 설정 (필수)
+JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
+JWT_REFRESH_SECRET="your-super-secret-refresh-key-change-this-in-production"
+JWT_ACCESS_EXPIRES_IN="2h"  # 선택사항 (기본값: 2h)
+JWT_REFRESH_EXPIRES_IN="7d"  # 선택사항 (기본값: 7d)
+```
+
+**JWT 시크릿 키 생성 방법:**
+터미널에서 다음 명령어로 강력한 랜덤 키를 생성할 수 있습니다:
+```bash
+# Node.js 사용
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+# 또는 OpenSSL 사용
+openssl rand -hex 64
 ```
 
 **S3 이미지 업로드 설정 (선택사항):**

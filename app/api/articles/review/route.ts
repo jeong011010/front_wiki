@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSessionUser } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth-middleware'
 import { z } from 'zod'
 import type { ApiErrorResponse } from '@/types'
 
@@ -10,12 +10,11 @@ const reviewSchema = z.object({
 })
 
 // GET: 검토 대기 중인 글 목록 (관리자만)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getSessionUser()
-    
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json<ApiErrorResponse>(
+    const authResult = await requireAdmin(request)
+    if (authResult.error || !authResult.user) {
+      return authResult.error || NextResponse.json<ApiErrorResponse>(
         { error: '관리자 권한이 필요합니다.' },
         { status: 403 }
       )
@@ -50,10 +49,9 @@ export async function GET() {
 // POST: 글 검토 (승인/거부) - 관리자만
 export async function POST(request: NextRequest) {
   try {
-    const user = await getSessionUser()
-    
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json<ApiErrorResponse>(
+    const authResult = await requireAdmin(request)
+    if (authResult.error || !authResult.user) {
+      return authResult.error || NextResponse.json<ApiErrorResponse>(
         { error: '관리자 권한이 필요합니다.' },
         { status: 403 }
       )

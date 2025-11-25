@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { slugify } from '@/lib/utils'
 import { detectKeywords } from '@/lib/link-detector'
-import { getSessionUser } from '@/lib/auth'
+import { authenticateToken, requireAuth } from '@/lib/auth-middleware'
 import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
 import type { ArticleCreateResponse, ApiErrorResponse } from '@/types'
@@ -29,7 +29,9 @@ export async function GET(request: NextRequest) {
     const includeSubcategories = searchParams.get('includeSubcategories') === 'true'
     const search = searchParams.get('search')
     
-    const user = await getSessionUser()
+    // 선택적 인증 (비회원도 조회 가능)
+    const authResult = await authenticateToken(request)
+    const user = authResult.user
     
     // 비회원 또는 일반 회원은 공개된 글만, 관리자는 모든 글
     const baseWhere = user?.role === 'admin' 
@@ -199,14 +201,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // 로그인 체크
-    const user = await getSessionUser()
-    
-    if (!user) {
-      return NextResponse.json<ApiErrorResponse>(
+    const authResult = await requireAuth(request)
+    if (authResult.error || !authResult.user) {
+      return authResult.error || NextResponse.json<ApiErrorResponse>(
         { error: '로그인이 필요합니다.' },
         { status: 401 }
       )
     }
+    const user = authResult.user
     
     const body = await request.json()
     const { title, content, categoryId } = articleSchema.parse(body)
