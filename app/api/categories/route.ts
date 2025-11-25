@@ -58,7 +58,6 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
-    const user = authResult.user
     
     const body = await request.json()
     const data = categorySchema.parse(body)

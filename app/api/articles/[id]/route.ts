@@ -130,11 +130,11 @@ export async function PUT(
     
     // 카테고리 존재 확인
     if (data.categoryId !== undefined && data.categoryId !== null) {
-      const category = await prisma.category.findUnique({
+      const categoryRecord = await prisma.category.findUnique({
         where: { id: data.categoryId },
       })
       
-      if (!category) {
+      if (!categoryRecord) {
         return NextResponse.json<ApiErrorResponse>(
           { error: '카테고리를 찾을 수 없습니다.' },
           { status: 404 }

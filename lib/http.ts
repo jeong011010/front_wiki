@@ -106,7 +106,7 @@ async function refreshAccessToken(): Promise<string | null> {
  * API 요청 전 토큰 확인 및 갱신
  */
 async function ensureValidToken(): Promise<string | null> {
-  let token = getAccessToken()
+  const token = getAccessToken()
 
   if (!token) {
     return null

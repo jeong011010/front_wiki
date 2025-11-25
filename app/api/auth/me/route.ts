@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ user: null })
     }
     
-    // 토큰 정보는 제외하고 사용자 정보만 반환
-    const { token, ...user } = authResult.user
+    // 사용자 정보만 반환
+    const { token: _token, ...user } = authResult.user
     
     return NextResponse.json({ user })
   } catch (error) {

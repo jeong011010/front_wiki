@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
     if (authResult.error || !authResult.user) {
       return authResult.error || NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
     }
-    const user = authResult.user
 
     const formData = await request.formData()
     const file = formData.get('image') as File

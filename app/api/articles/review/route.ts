@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
         { status: 403 }
       )
     }
-    const user = authResult.user
     
     const articles = await prisma.article.findMany({
       where: {
@@ -57,7 +56,6 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
-    const user = authResult.user
     
     const body = await request.json()
     const { articleId, status } = reviewSchema.parse(body)
