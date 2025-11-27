@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { detectKeywords } from '@/lib/link-detector'
 import { authenticateToken, requireAuth } from '@/lib/auth-middleware'
+import { deleteCachePattern, deleteCache, isCacheAvailable } from '@/lib/cache'
 import { z } from 'zod'
 import type { ArticleDetailResponse, ArticleUpdateResponse, ArticleDeleteResponse, ApiErrorResponse } from '@/types'
 
