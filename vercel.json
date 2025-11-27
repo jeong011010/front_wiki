@@ -7,7 +7,7 @@
   "crons": [
     {
       "path": "/api/health/supabase",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 1 * * *"
     }
   ]
 }

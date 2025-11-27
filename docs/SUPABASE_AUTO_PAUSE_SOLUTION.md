@@ -35,12 +35,17 @@ Can't reach database server at `aws-1-ap-northeast-2.pooler.supabase.com:5432`
 
 **Vercel Cron Jobs 사용:**
 
+> ⚠️ **주의**: Vercel Hobby 플랜 제한사항
+> - 계정당 최대 2개의 cron job
+> - 하루에 한 번만 실행 가능
+> - 정확한 시간 보장 안 됨 (예: 1시로 설정해도 1:00-1:59 사이에 실행될 수 있음)
+
 1. **Vercel Dashboard → 프로젝트 → Settings → Cron Jobs**
 2. **Create Cron Job** 클릭
 3. 설정:
    - **Path**: `/api/health/supabase`
-   - **Schedule**: `*/30 * * * *` (30분마다)
-   - 또는 `0 */6 * * *` (6시간마다)
+   - **Schedule**: `0 1 * * *` (매일 새벽 1시, Hobby 플랜 제한)
+   - 또는 `0 */6 * * *` (6시간마다, Pro 플랜 필요)
 
 4. **API Route 생성**: `app/api/health/supabase/route.ts`
    ```typescript
@@ -62,6 +67,16 @@ Can't reach database server at `aws-1-ap-northeast-2.pooler.supabase.com:5432`
 - 자동으로 Supabase 프로젝트를 활성 상태로 유지
 - 수동 재시작 불필요
 - Vercel Cron Jobs는 무료 플랜에서도 사용 가능
+
+**제한사항 (Hobby 플랜):**
+- 하루에 한 번만 실행 가능
+- 정확한 시간 보장 안 됨 (1:00-1:59 사이에 실행될 수 있음)
+- 계정당 최대 2개의 cron job
+
+**Pro 플랜 업그레이드 시:**
+- 무제한 cron 호출
+- 정확한 시간 보장
+- 더 자주 실행 가능 (예: 6시간마다)
 
 #### 1-2. 애플리케이션 시작 시 연결 확인
 
@@ -274,17 +289,20 @@ export async function GET() {
   "crons": [
     {
       "path": "/api/health/supabase",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 1 * * *"
     }
   ]
 }
 ```
 
+> **Hobby 플랜**: 하루에 한 번만 실행 가능 (`0 1 * * *` - 매일 새벽 1시)
+> **Pro 플랜**: 더 자주 실행 가능 (`0 */6 * * *` - 6시간마다)
+
 **또는 Vercel Dashboard에서 설정:**
 1. Vercel Dashboard → 프로젝트 → Settings → Cron Jobs
 2. Create Cron Job
 3. Path: `/api/health/supabase`
-4. Schedule: `*/30 * * * *` (30분마다)
+4. Schedule: `0 1 * * *` (매일 새벽 1시, Hobby 플랜 제한)
 
 ### 3. 연결 재시도 로직 추가
 
