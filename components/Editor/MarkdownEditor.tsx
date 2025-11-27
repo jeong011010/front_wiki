@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { AutoLinkEditorProps, DetectedLink, ArticleBasic } from '@/types'
 import { escapeRegex } from '@/lib/regex-utils'
 import { apiPost, apiPut, apiRequest } from '@/lib/http'
+import type { ArticleCreateResponse, ArticleUpdateResponse } from '@/types'
 import { marked } from 'marked'
 import CategorySelect from '@/components/CategorySelect'
 import 'github-markdown-css/github-markdown.css'
@@ -398,8 +399,8 @@ export default function MarkdownEditor({
       }
 
       const article = articleId
-        ? await apiPut(`/api/articles/${articleId}`, data)
-        : await apiPost('/api/articles', data)
+        ? await apiPut<ArticleUpdateResponse>(`/api/articles/${articleId}`, data)
+        : await apiPost<ArticleCreateResponse>('/api/articles', data)
 
       router.push(`/articles/${article.slug}`)
     } catch (error) {
