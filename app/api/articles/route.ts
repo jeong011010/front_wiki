@@ -6,7 +6,7 @@ import { authenticateToken, requireAuth } from '@/lib/auth-middleware'
 import { getCache, setCache, createCacheKey, isCacheAvailable, deleteCachePattern, deleteCache } from '@/lib/cache'
 import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
-import type { ArticleCreateResponse, ApiErrorResponse } from '@/types'
+import type { ArticlesListResponse, ArticleCreateResponse, ApiErrorResponse } from '@/types'
 
 const articleSchema = z.object({
   title: z.string().min(1),
@@ -41,9 +41,9 @@ export async function GET(request: NextRequest) {
     
     // 캐시에서 조회 시도 (검색어가 없을 때만)
     if (cacheKey && isCacheAvailable()) {
-      const cached = await getCache<any>(cacheKey)
+      const cached = await getCache<ArticlesListResponse>(cacheKey)
       if (cached) {
-        return NextResponse.json(cached)
+        return NextResponse.json<ArticlesListResponse>(cached)
       }
     }
     

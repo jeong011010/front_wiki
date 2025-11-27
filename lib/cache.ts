@@ -11,27 +11,13 @@ let kv: any = null
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let redis: any = null
 
-/**
- * REDIS_URL에서 REST API URL과 Token 추출
- * Vercel Marketplace Redis는 REDIS_URL 형식으로 제공됨
- * 
- * 지원 형식:
- * 1. redis://default:token@host:port (Upstash Redis URL)
- * 2. rediss://default:token@host:port (Upstash Redis SSL URL)
- * 3. https://host:port (Redis Cloud REST API URL)
- * 4. https://host (REST API URL 직접)
- * 
- * 참고:
- * - Upstash REST API는 포트 없이 호스트만 사용
- * - Redis Cloud REST API는 포트를 포함할 수 있음 (예: :9443)
- */
+// parseRedisUrl 함수는 현재 사용하지 않음 (Redis Cloud는 서버리스 환경에서 사용 불가)
+// 필요시 주석 해제하여 사용
+/*
 function parseRedisUrl(redisUrl: string): { url: string; token: string } | null {
   try {
-    // 이미 HTTPS URL인 경우 (REST API URL)
     if (redisUrl.startsWith('https://')) {
       const url = new URL(redisUrl)
-      // Redis Cloud는 포트를 포함할 수 있음 (예: :9443)
-      // Upstash는 포트 없음
       const restUrl = url.port 
         ? `https://${url.hostname}:${url.port}`
         : `https://${url.hostname}`
@@ -39,16 +25,10 @@ function parseRedisUrl(redisUrl: string): { url: string; token: string } | null 
       return { url: restUrl, token }
     }
     
-    // redis:// 또는 rediss:// 형식
     if (redisUrl.startsWith('redis://') || redisUrl.startsWith('rediss://')) {
       const url = new URL(redisUrl)
       const token = url.password || url.searchParams.get('token') || ''
       const host = url.hostname
-      const port = url.port
-      
-      // Redis Cloud는 REST API 포트가 다를 수 있음 (일반적으로 9443)
-      // Upstash는 포트 없이 호스트만 사용
-      // 일단 호스트만 사용 (포트는 Redis Cloud 대시보드에서 확인 필요)
       const hostWithoutPort = host.split(':')[0]
       const restUrl = `https://${hostWithoutPort}`
       
@@ -62,11 +42,12 @@ function parseRedisUrl(redisUrl: string): { url: string; token: string } | null 
     
     console.warn('지원하지 않는 REDIS_URL 형식:', redisUrl)
     return null
-  } catch (error) {
-    console.warn('Failed to parse REDIS_URL:', error)
+  } catch {
+    console.warn('Failed to parse REDIS_URL')
     return null
   }
 }
+*/
 
 /**
  * 캐시 클라이언트 초기화
@@ -78,7 +59,7 @@ async function initCache() {
       const { kv: vercelKv } = await import('@vercel/kv')
       kv = vercelKv
       return
-    } catch (error) {
+    } catch {
       console.warn('Vercel KV not available, trying Upstash Redis')
     }
   }
@@ -129,8 +110,8 @@ export async function getCache<T>(key: string): Promise<T | null> {
     }
 
     return null
-  } catch (error) {
-    console.error('Cache get error:', error)
+  } catch {
+    console.error('Cache get error')
     return null
   }
 }
@@ -160,8 +141,8 @@ export async function setCache<T>(
     }
 
     return false
-  } catch (error) {
-    console.error('Cache set error:', error)
+  } catch {
+    console.error('Cache set error')
     return false
   }
 }

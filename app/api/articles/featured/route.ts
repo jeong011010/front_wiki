@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticateToken } from '@/lib/auth-middleware'
 import { getCache, setCache, createCacheKey, isCacheAvailable } from '@/lib/cache'
-import type { ApiErrorResponse } from '@/types'
+import type { ArticlesListResponse, ApiErrorResponse } from '@/types'
 
 /**
  * GET: 인기순 또는 최신순으로 글 목록 조회
@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
     
     // 캐시에서 조회 시도
     if (isCacheAvailable()) {
-      const cached = await getCache<any>(cacheKey)
+      const cached = await getCache<ArticlesListResponse>(cacheKey)
       if (cached) {
-        return NextResponse.json(cached)
+        return NextResponse.json<ArticlesListResponse>(cached)
       }
     }
     
