@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { AutoLinkEditorProps, DetectedLink, ArticleBasic } from '@/types'
 import { escapeRegex } from '@/lib/regex-utils'
+import { apiPost, apiPut, apiRequest } from '@/lib/http'
 import { marked } from 'marked'
 import CategorySelect from '@/components/CategorySelect'
 import 'github-markdown-css/github-markdown.css'
@@ -304,9 +305,10 @@ export default function MarkdownEditor({
       const formData = new FormData()
       formData.append('image', file)
 
-      const response = await fetch('/api/images/upload', {
+      const response = await apiRequest('/api/images/upload', {
         method: 'POST',
         body: formData,
+        // FormData 사용 시 Content-Type 헤더를 설정하지 않음 (브라우저가 자동 설정)
       })
 
       if (!response.ok) {
@@ -389,28 +391,16 @@ export default function MarkdownEditor({
     setIsSubmitting(true)
 
     try {
-      const url = articleId ? `/api/articles/${articleId}` : '/api/articles'
-      const method = articleId ? 'PUT' : 'POST'
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          title, 
-          content,
-          categoryId: categoryId || undefined,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        const errorMessage = errorData.error || errorData.message || 'Failed to save article'
-        throw new Error(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage))
+      const data = { 
+        title, 
+        content,
+        categoryId: categoryId || undefined,
       }
 
-      const article = await response.json()
+      const article = articleId
+        ? await apiPut(`/api/articles/${articleId}`, data)
+        : await apiPost('/api/articles', data)
+
       router.push(`/articles/${article.slug}`)
     } catch (error) {
       console.error('Error saving article:', error)
