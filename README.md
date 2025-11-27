@@ -77,8 +77,10 @@
 - **Hosting**: Vercel (서버리스)
 - **Database**: Supabase/Neon (관리형 PostgreSQL)
 - **Storage**: AWS S3 (이미지 저장)
-- **CDN**: CloudFront
-- **Monitoring**: CloudWatch, Vercel Analytics
+- **CDN**: CloudFront (선택사항, 현재 미사용)
+- **Caching**: Vercel KV / Upstash Redis (선택사항)
+- **Monitoring**: Sentry, Vercel Analytics
+- **Security**: Cloudflare (선택사항)
 
 ## 🚀 시작하기
 
@@ -113,6 +115,21 @@ JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
 JWT_REFRESH_SECRET="your-super-secret-refresh-key-change-this-in-production"
 JWT_ACCESS_EXPIRES_IN="2h"  # 선택사항 (기본값: 2h)
 JWT_REFRESH_EXPIRES_IN="7d"  # 선택사항 (기본값: 7d)
+
+# Redis 캐싱 설정 (선택사항)
+# Vercel KV 사용 시 (Vercel Dashboard에서 자동 생성됨)
+KV_REST_API_URL="https://xxx.kv.vercel-storage.com"
+KV_REST_API_TOKEN="xxx"
+
+# 또는 Upstash Redis 사용 시
+UPSTASH_REDIS_REST_URL="https://xxx.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="xxx"
+
+# Sentry 모니터링 설정 (선택사항)
+SENTRY_DSN="https://...@..."
+NEXT_PUBLIC_SENTRY_DSN="https://...@..."
+SENTRY_ORG="your-org"
+SENTRY_PROJECT="your-project"
 ```
 
 **JWT 시크릿 키 생성 방법:**

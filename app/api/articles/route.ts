@@ -3,9 +3,10 @@ import { prisma } from '@/lib/prisma'
 import { slugify } from '@/lib/utils'
 import { detectKeywords } from '@/lib/link-detector'
 import { authenticateToken, requireAuth } from '@/lib/auth-middleware'
+import { getCache, setCache, createCacheKey, isCacheAvailable, deleteCachePattern, deleteCache } from '@/lib/cache'
 import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
-import type { ArticleCreateResponse, ApiErrorResponse } from '@/types'
+import type { ArticlesListResponse, ArticleCreateResponse, ApiErrorResponse } from '@/types'
 
 const articleSchema = z.object({
   title: z.string().min(1),
@@ -32,6 +33,19 @@ export async function GET(request: NextRequest) {
     // 선택적 인증 (비회원도 조회 가능)
     const authResult = await authenticateToken(request)
     const user = authResult.user
+    
+    // 캐시 키 생성 (검색어가 없을 때만 캐싱)
+    const cacheKey = search 
+      ? null 
+      : createCacheKey('articles', category || 'all', sort, limit, offset, user?.role || 'guest')
+    
+    // 캐시에서 조회 시도 (검색어가 없을 때만)
+    if (cacheKey && isCacheAvailable()) {
+      const cached = await getCache<ArticlesListResponse>(cacheKey)
+      if (cached) {
+        return NextResponse.json<ArticlesListResponse>(cached)
+      }
+    }
     
     // 비회원 또는 일반 회원은 공개된 글만, 관리자는 모든 글
     const baseWhere = user?.role === 'admin' 
@@ -144,6 +158,11 @@ export async function GET(request: NextRequest) {
         }
       })
       
+      // 캐시에 저장 (30분, 검색어가 없을 때만)
+      if (cacheKey && isCacheAvailable()) {
+        await setCache(cacheKey, articlesWithPreview, 1800)
+      }
+      
       return NextResponse.json(articlesWithPreview)
     } else {
       // 최신순 또는 제목순
@@ -188,6 +207,11 @@ export async function GET(request: NextRequest) {
           preview,
         }
       })
+      
+      // 캐시에 저장 (30분, 검색어가 없을 때만)
+      if (cacheKey && isCacheAvailable()) {
+        await setCache(cacheKey, articlesWithPreview, 1800)
+      }
       
       return NextResponse.json(articlesWithPreview)
     }
@@ -284,6 +308,13 @@ export async function POST(request: NextRequest) {
     } catch (linkError) {
       // 링크 생성 실패해도 글은 저장됨
       console.error('Link detection error:', linkError)
+    }
+    
+    // 캐시 무효화
+    if (isCacheAvailable()) {
+      await deleteCachePattern('articles:*')
+      await deleteCachePattern('diagram:*')
+      await deleteCache('keywords')
     }
     
     return NextResponse.json<ArticleCreateResponse>(article)
