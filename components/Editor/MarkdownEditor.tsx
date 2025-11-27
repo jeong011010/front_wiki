@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { AutoLinkEditorProps, DetectedLink, ArticleBasic } from '@/types'
-import { escapeRegex } from '@/lib/link-detector'
+import { escapeRegex } from '@/lib/regex-utils'
 import { marked } from 'marked'
 import CategorySelect from '@/components/CategorySelect'
 import 'github-markdown-css/github-markdown.css'

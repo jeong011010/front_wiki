@@ -18,31 +18,48 @@
 **원인**: Supabase 프로젝트가 자동 일시정지됨 (무료 플랜)
 
 **해결 방법**:
-1. Supabase Dashboard에서 프로젝트 상태 확인
-2. "Paused" 상태면 **Restore** 클릭
-3. 또는 Vercel Cron Job이 자동으로 Keep-Alive 실행 중
+1. **즉시 해결**: Supabase Dashboard에서 수동으로 Restore
+   - https://supabase.com/dashboard 접속
+   - 프로젝트 선택
+   - "Paused" 상태면 **Restore** 버튼 클릭
+   - 몇 분 후 연결 복구됨
 
-**예방**: Vercel Cron Job이 `/api/health/supabase`를 매일 호출하도록 설정됨
+2. **장기 해결**: Keep-Alive 설정 (선택사항)
+   - 외부 서비스 사용 (예: UptimeRobot, cron-job.org)
+   - 또는 Supabase Pro 플랜으로 업그레이드 (자동 일시정지 없음)
 
-**상세**: [Supabase 자동 일시정지 해결](./SUPABASE_AUTO_PAUSE_SOLUTION.md)
+**참고**: 
+- 무료 플랜은 7일간 비활성 시 자동 일시정지
+- Vercel Hobby 플랜은 Cron Jobs 제한이 있어 Keep-Alive 구현이 어려움
+- **상세 가이드**: [Supabase Keep-Alive 설정](./SUPABASE_KEEP_ALIVE.md)
 
 ### DATABASE_URL 연결 오류
 
-**증상**: 로컬에서는 연결 안 됨, 배포 환경에서는 정상
+**증상**: `Can't reach database server at pooler.supabase.com:5432`
+
+**원인**: 포트 번호 오류 또는 URL 형식 오류
 
 **해결 방법**:
-1. `.env` 파일의 `DATABASE_URL` 확인
-2. Session Pooler URL 사용 (Vercel 배포용)
-3. Direct Connection URL 사용 (로컬 개발용)
+1. **포트 번호 확인**
+   - Session Pooler: **6543** 포트 사용
+   - Direct Connection: **5432** 포트 사용
+   - 에러 메시지에 `pooler.supabase.com:5432`가 보이면 포트가 잘못됨!
 
-**URL 형식**:
-```
-# Session Pooler (배포용)
-postgresql://user:password@host:6543/db?pgbouncer=true
+2. **올바른 URL 형식**
+   ```
+   # Session Pooler (Vercel 배포용 - 권장)
+   postgresql://postgres.xxx:password@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true
+   
+   # Direct Connection (로컬 개발용)
+   postgresql://postgres.xxx:password@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres
+   ```
 
-# Direct Connection (로컬용)
-postgresql://user:password@host:5432/db
-```
+3. **Vercel 환경 변수 수정**
+   - Vercel Dashboard → Settings → Environment Variables
+   - `DATABASE_URL` 수정: 포트를 **6543**으로 변경하고 `?pgbouncer=true` 추가
+   - 재배포
+
+**상세 가이드**: [Supabase 연결 오류 해결](./SUPABASE_CONNECTION_FIX.md)
 
 ---
 

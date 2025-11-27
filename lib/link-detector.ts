@@ -1,5 +1,7 @@
+import 'server-only'
 import { prisma } from './prisma'
 import type { DetectedLink } from '@/types'
+import { escapeRegex } from './regex-utils'
 
 /**
  * 텍스트에서 기존 글의 제목과 매칭되는 키워드를 찾아 링크 정보를 반환
@@ -73,12 +75,6 @@ export async function detectKeywords(text: string): Promise<DetectedLink[]> {
   return matches.sort((a, b) => b.keyword.length - a.keyword.length)
 }
 
-/**
- * 정규식 특수문자 이스케이프
- */
-export function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
 
 /**
  * 텍스트에 링크를 삽입한 HTML 반환

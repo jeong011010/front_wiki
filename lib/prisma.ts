@@ -1,3 +1,4 @@
+import 'server-only'
 import { PrismaClient } from '@prisma/client'
 import path from 'path'
 
@@ -18,29 +19,6 @@ export const prisma =
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   })
-
-// 프로덕션 환경에서 연결 확인 및 재시도
-if (process.env.NODE_ENV === 'production') {
-  const connectWithRetry = async (maxRetries = 3, delay = 2000) => {
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        await prisma.$connect()
-        console.log('✅ Supabase 연결 성공')
-        return
-      } catch (error) {
-        if (i === maxRetries - 1) {
-          console.error('❌ Supabase 연결 실패 (최대 재시도 횟수 초과):', error)
-          return
-        }
-        console.warn(`⚠️ Supabase 연결 실패, ${delay}ms 후 재시도... (${i + 1}/${maxRetries})`)
-        await new Promise(resolve => setTimeout(resolve, delay))
-      }
-    }
-  }
-
-  // 비동기로 연결 시도 (블로킹하지 않음)
-  connectWithRetry().catch(console.error)
-}
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 

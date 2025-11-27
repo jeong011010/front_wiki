@@ -25,7 +25,10 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  // Prisma를 클라이언트 번들에서 제외
+  // Turbopack 설정 (Next.js 16 기본)
+  turbopack: {},
+  
+  // Prisma를 클라이언트 번들에서 완전히 제외 (webpack fallback)
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -33,6 +36,8 @@ const nextConfig: NextConfig = {
         fs: false,
         net: false,
         tls: false,
+        child_process: false,
+        readline: false,
       };
     }
     return config;
