@@ -21,12 +21,10 @@ export default function Header() {
     }
   }, [isMenuOpen])
 
-  // 경로 변경 시 메뉴 닫기
-  useEffect(() => {
-    if (isMenuOpen) {
-      setIsMenuOpen(false)
-    }
-  }, [pathname, isMenuOpen])
+  // 메뉴 닫기 핸들러
+  const handleLinkClick = () => {
+    setIsMenuOpen(false)
+  }
 
   const navLinks = [
     { href: '/diagram', label: '지식 그래프' },
@@ -96,6 +94,7 @@ export default function Header() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  onClick={handleLinkClick}
                   className={`px-4 py-3 rounded-lg transition-all font-medium ${
                     pathname === link.href
                       ? 'bg-primary-500 text-white'
