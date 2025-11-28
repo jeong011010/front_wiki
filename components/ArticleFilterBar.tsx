@@ -328,21 +328,22 @@ export default function ArticleFilterBar({
   }
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-3 md:p-4 mb-4">
+    <div className="bg-surface border border-border rounded-lg p-2 md:p-3 mb-3">
       {/* 첫 번째 줄: 검색 바 */}
-      <div className="mb-3">
+      <div className="mb-2">
         <Input
           type="text"
           placeholder="카테고리 전체에서 검색..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
+          className="h-9 md:h-10"
         />
       </div>
 
       {/* 두 번째 줄: 필터 및 정렬 옵션 */}
-      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-1.5 sm:gap-2">
         {/* 대분류 버튼들 */}
-        <div className="flex flex-wrap gap-2 flex-1">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 flex-1">
           <button
             onClick={() => {
               setSelectedMainCategory(null)
@@ -350,7 +351,7 @@ export default function ArticleFilterBar({
               setOpenDropdowns(new Set())
               setHoveredCategory(null)
             }}
-            className={`px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-2.5 md:px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${
               selectedMainCategory === null
                 ? 'bg-primary-500 text-white'
                 : 'bg-secondary-300 text-text-primary hover:bg-secondary-500'
@@ -362,7 +363,7 @@ export default function ArticleFilterBar({
             <div key={mainCat.id} className="relative">
               <button
                 onClick={() => handleMainCategoryClick(mainCat)}
-                className={`px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${
+                className={`px-2.5 md:px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors relative ${
                   selectedMainCategory?.id === mainCat.id
                     ? 'bg-primary-500 text-white'
                     : 'bg-secondary-300 text-text-primary hover:bg-secondary-500'
@@ -387,30 +388,30 @@ export default function ArticleFilterBar({
         <div className="flex flex-wrap gap-2 items-center">
           {/* 선택된 카테고리 표시 */}
           {selectedCategory && selectedMainCategory && (
-            <div className="px-3 md:px-4 py-2 bg-secondary-300 text-text-primary rounded-lg text-sm font-medium truncate max-w-[200px] sm:max-w-none">
+            <div className="px-2.5 md:px-3 py-1.5 md:py-2 bg-secondary-300 text-text-primary rounded-lg text-xs md:text-sm font-medium truncate max-w-[200px] sm:max-w-none">
               {selectedCategoryName}
             </div>
           )}
 
           {/* 하위 카테고리 포함 옵션 */}
           {selectedCategory && (
-            <label className="flex items-center gap-2 px-3 md:px-4 py-2 bg-secondary-300 text-text-primary rounded-lg cursor-pointer hover:bg-secondary-500 transition-colors whitespace-nowrap">
+            <label className="flex items-center gap-1.5 md:gap-2 px-2.5 md:px-3 py-1.5 md:py-2 bg-secondary-300 text-text-primary rounded-lg cursor-pointer hover:bg-secondary-500 transition-colors whitespace-nowrap">
               <input
                 type="checkbox"
                 checked={includeSubcategories}
                 onChange={(e) => onIncludeSubcategoriesChange(e.target.checked)}
-                className="w-4 h-4 text-primary-500 rounded focus:ring-primary-500"
+                className="w-3.5 h-3.5 md:w-4 md:h-4 text-primary-500 rounded focus:ring-primary-500"
               />
-              <span className="text-sm font-medium hidden sm:inline">하위 카테고리 포함</span>
-              <span className="text-sm font-medium sm:hidden">하위 포함</span>
+              <span className="text-xs md:text-sm font-medium hidden sm:inline">하위 카테고리 포함</span>
+              <span className="text-xs md:text-sm font-medium sm:hidden">하위 포함</span>
             </label>
           )}
 
           {/* 정렬 선택 */}
-          <div className="flex gap-1 md:gap-2 bg-secondary-300 rounded-lg p-1 ml-auto sm:ml-0">
+          <div className="flex gap-0.5 md:gap-1 bg-secondary-300 rounded-lg p-0.5 md:p-1 ml-auto sm:ml-0">
             <button
               onClick={() => onSortChange('recent')}
-              className={`px-2 md:px-4 py-2 rounded-md text-xs md:text-sm font-medium transition-colors ${
+              className={`px-2 md:px-3 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors ${
                 sortBy === 'recent'
                   ? 'bg-primary-500 text-white'
                   : 'text-text-secondary hover:text-text-primary'
@@ -420,7 +421,7 @@ export default function ArticleFilterBar({
             </button>
             <button
               onClick={() => onSortChange('popular')}
-              className={`px-2 md:px-4 py-2 rounded-md text-xs md:text-sm font-medium transition-colors ${
+              className={`px-2 md:px-3 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors ${
                 sortBy === 'popular'
                   ? 'bg-primary-500 text-white'
                   : 'text-text-secondary hover:text-text-primary'
@@ -430,7 +431,7 @@ export default function ArticleFilterBar({
             </button>
             <button
               onClick={() => onSortChange('title')}
-              className={`px-2 md:px-4 py-2 rounded-md text-xs md:text-sm font-medium transition-colors ${
+              className={`px-2 md:px-3 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors ${
                 sortBy === 'title'
                   ? 'bg-primary-500 text-white'
                   : 'text-text-secondary hover:text-text-primary'

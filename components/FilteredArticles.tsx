@@ -194,26 +194,17 @@ export default function FilteredArticles() {
         )}
       </div>
       
-      {/* 더보기 버튼 - 항상 고정 위치에 표시하여 레이아웃 시프트 방지 */}
-      <div 
-        className="flex justify-end mt-6"
-        style={{ 
-          height: '3.5rem', // 버튼 높이 + margin-top 고정
-          minHeight: '3.5rem'
-        }}
-      >
-        {!loading && articles.length > 0 ? (
+      {/* 더보기 버튼 - 동적 위치 */}
+      {!loading && articles.length > 0 && (
+        <div className="flex justify-end mt-4 md:mt-6">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-lg"
+            className="px-4 md:px-6 py-2 md:py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm md:text-base font-medium shadow-lg"
           >
             더보기 →
           </button>
-        ) : (
-          // 로딩 중이거나 표시할 글이 없을 때는 투명한 플레이스홀더
-          <div style={{ height: '3rem', width: '120px' }} aria-hidden="true" />
-        )}
-      </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <ArticleListModal
