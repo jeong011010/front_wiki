@@ -208,6 +208,16 @@ export function createCacheKey(prefix: string, ...parts: (string | number | null
 }
 
 /**
+ * 캐시 키에 버전 추가
+ */
+export async function createVersionedCacheKey(prefix: string, ...parts: (string | number | null | undefined)[]): Promise<string> {
+  const { getCacheVersion } = await import('./cache-version')
+  const version = await getCacheVersion()
+  const baseKey = createCacheKey(prefix, ...parts)
+  return `${baseKey}:v${version}`
+}
+
+/**
  * 캐시 사용 가능 여부 확인
  * 
  * 참고: Redis Cloud(REDIS_URL)는 서버리스 환경에서 사용할 수 없으므로 제외

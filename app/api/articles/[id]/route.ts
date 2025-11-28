@@ -1,6 +1,8 @@
 import { authenticateToken, requireAuth } from '@/lib/auth-middleware'
 import { detectKeywords } from '@/lib/link-detector'
 import { prisma } from '@/lib/prisma'
+import { isCacheAvailable } from '@/lib/cache'
+import { incrementCacheVersion } from '@/lib/cache-version'
 import type { ApiErrorResponse, ArticleDeleteResponse, ArticleDetailResponse, ArticleUpdateResponse } from '@/types'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -187,6 +189,11 @@ export async function PUT(
       }
     }
     
+    // 캐시 버전 증가 (모든 캐시 자동 무효화)
+    if (isCacheAvailable()) {
+      await incrementCacheVersion()
+    }
+    
     return NextResponse.json<ArticleUpdateResponse>(article)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -232,6 +239,12 @@ export async function DELETE(
     await prisma.article.delete({
       where: { id },
     })
+    
+    // 캐시 버전 증가 (모든 캐시 자동 무효화)
+    if (isCacheAvailable()) {
+      await incrementCacheVersion()
+    }
+    
     return NextResponse.json<ArticleDeleteResponse>({ success: true })
   } catch {
     return NextResponse.json<ApiErrorResponse>({ error: 'Failed to delete article' }, { status: 500 })
