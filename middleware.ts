@@ -23,16 +23,18 @@ export function middleware(request: NextRequest) {
     // HSTS (HTTPS 강제)
     'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
     
-    // Content Security Policy (기본)
-    'Content-Security-Policy': [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel-insights.com",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https://*.amazonaws.com https://*.cloudfront.net https://*.vercel.com",
-      "connect-src 'self' https://*.vercel.app https://*.upstash.io https://*.sentry.io https://o4510438503743488.ingest.us.sentry.io",
-      "font-src 'self' data:",
-      "frame-ancestors 'none'",
-    ].join('; '),
+      // Content Security Policy (기본)
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel-insights.com https://va.vercel-scripts.com",
+        "script-src-elem 'self' 'unsafe-inline' https://vercel.live https://*.vercel-insights.com https://va.vercel-scripts.com",
+        "worker-src 'self' blob:",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https://*.amazonaws.com https://*.cloudfront.net https://*.vercel.com",
+        "connect-src 'self' https://*.vercel.app https://*.upstash.io https://*.sentry.io https://o4510438503743488.ingest.us.sentry.io https://va.vercel-scripts.com",
+        "font-src 'self' data:",
+        "frame-ancestors 'none'",
+      ].join('; '),
   }
 
   // Security Headers 적용
