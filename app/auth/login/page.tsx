@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import { motion } from 'framer-motion'
+import { Button, Input } from '@/components/ui'
 import { login } from '@/lib/auth-client'
 
 function LoginForm() {
@@ -59,15 +60,15 @@ function LoginForm() {
               <label htmlFor="email" className="block text-sm font-medium mb-2 text-text-primary">
                 이메일
               </label>
-              <input
+              <Input
                 type="email"
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 md:py-2.5 bg-surface border border-border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-text-primary placeholder:text-text-tertiary transition-all text-base"
                 placeholder="your@email.com"
                 required
                 autoComplete="email"
+                error={!!error}
               />
             </div>
 
@@ -75,25 +76,26 @@ function LoginForm() {
               <label htmlFor="password" className="block text-sm font-medium mb-2 text-text-primary">
                 비밀번호
               </label>
-              <input
+              <Input
                 type="password"
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 md:py-2.5 bg-surface border border-border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-text-primary placeholder:text-text-tertiary transition-all text-base"
                 placeholder="비밀번호를 입력하세요"
                 required
                 autoComplete="current-password"
+                error={!!error}
               />
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="w-full px-6 py-3 md:py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-all hover:shadow-md text-base"
+              className="w-full"
+              size="lg"
             >
               {isLoading ? '로그인 중...' : '로그인'}
-            </button>
+            </Button>
           </form>
 
           <div className="mt-6 text-center">
