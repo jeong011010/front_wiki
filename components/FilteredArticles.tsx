@@ -132,7 +132,7 @@ export default function FilteredArticles() {
         />
         {/* 필터 결과 개수 표시 */}
         {!loading && articles.length > 0 && (
-          <p className="text-sm text-text-secondary mt-2 px-2">
+          <p className="text-xs md:text-sm text-text-secondary mt-2 px-2">
             총 <span className="font-semibold text-text-primary">{articles.length}</span>개의 글이 있습니다.
           </p>
         )}

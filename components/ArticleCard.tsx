@@ -106,10 +106,8 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   return (
     <Link
       href={`/articles/${article.slug}`}
-      className="block bg-surface border border-border rounded-lg p-4 md:p-6 hover:shadow-lg transition-[box-shadow,border-color] hover:border-primary-300 group h-full"
+      className="block bg-surface border border-border rounded-lg p-4 md:p-6 hover:shadow-lg transition-[box-shadow,border-color] hover:border-primary-300 group"
       style={{ 
-        minHeight: '200px',
-        height: '100%',
         display: 'flex', 
         flexDirection: 'column',
         contain: 'layout style'

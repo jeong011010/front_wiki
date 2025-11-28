@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { rateLimitByIP } from '@/lib/rate-limit'
-import { getClientIP } from '@/lib/cloudflare-ip'
+import { getClientIP } from '@/lib/cloudflare-ip';
+import { rateLimitByIP } from '@/lib/rate-limit';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 /**
  * API Route용 Rate Limiting 미들웨어

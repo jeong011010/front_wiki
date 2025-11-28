@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import * as Sentry from '@sentry/nextjs'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 export default function TestSentryPage() {
   const [result, setResult] = useState<string>('')

@@ -328,9 +328,9 @@ export default function ArticleFilterBar({
   }
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-4 mb-6">
+    <div className="bg-surface border border-border rounded-lg p-3 md:p-4 mb-4">
       {/* 첫 번째 줄: 검색 바 */}
-      <div className="mb-4">
+      <div className="mb-3">
         <Input
           type="text"
           placeholder="카테고리 전체에서 검색..."
