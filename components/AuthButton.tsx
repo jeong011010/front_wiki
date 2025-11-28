@@ -43,20 +43,20 @@ export default function AuthButton() {
 
   if (user) {
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-4">
         <Link
           href="/articles/new"
-          className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-all hover:shadow-md font-medium"
+          className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-all hover:shadow-md font-medium text-center md:text-left"
         >
           새 글 작성
         </Link>
-        <span className="text-sm text-text-secondary">
+        <span className="text-sm text-text-secondary text-center md:text-left px-2">
           {user.name}님 ({user.role === 'admin' ? '관리자' : '회원'})
         </span>
         {user.role === 'admin' && (
           <Link
             href="/admin/review"
-            className="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all text-sm font-medium"
+            className="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all text-sm font-medium text-center"
           >
             검토
           </Link>
@@ -72,16 +72,16 @@ export default function AuthButton() {
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col md:flex-row gap-2">
       <Link
         href="/auth/login"
-        className="px-4 py-2 bg-secondary-300 text-text-primary rounded-lg hover:bg-secondary-500 transition-all font-medium"
+        className="px-4 py-2 bg-secondary-300 text-text-primary rounded-lg hover:bg-secondary-500 transition-all font-medium text-center"
       >
         로그인
       </Link>
       <Link
         href="/auth/register"
-        className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-all font-medium"
+        className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-all font-medium text-center"
       >
         회원가입
       </Link>

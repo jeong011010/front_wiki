@@ -73,12 +73,12 @@ export default function FeaturedArticles() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold text-text-primary">추천 글</h2>
-        <div className="flex gap-2 bg-surface border border-border rounded-lg p-1">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <h2 className="text-2xl md:text-3xl font-bold text-text-primary">추천 글</h2>
+        <div className="flex gap-2 bg-surface border border-border rounded-lg p-1 w-full sm:w-auto">
           <button
             onClick={() => setSort('recent')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-3 md:px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               sort === 'recent'
                 ? 'bg-primary-500 text-white'
                 : 'text-text-secondary hover:text-text-primary'
@@ -88,7 +88,7 @@ export default function FeaturedArticles() {
           </button>
           <button
             onClick={() => setSort('popular')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-3 md:px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               sort === 'popular'
                 ? 'bg-primary-500 text-white'
                 : 'text-text-secondary hover:text-text-primary'
@@ -99,12 +99,11 @@ export default function FeaturedArticles() {
         </div>
       </div>
 
-      {/* 고정 높이 그리드 - DOM 구조는 항상 동일 */}
+      {/* 반응형 그리드 - 모바일에서는 고정 높이 제거 */}
       <div 
-        className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
         style={{ 
-          minHeight: GRID_HEIGHT, 
-          height: GRID_HEIGHT,
+          minHeight: 'auto',
           contain: 'layout style paint'
         }}
       >
@@ -112,7 +111,7 @@ export default function FeaturedArticles() {
         {displayItems.map((item) => {
           if (item.type === 'article') {
             return (
-              <div key={item.id} style={{ height: '240px' }}>
+              <div key={item.id}>
                 <ArticleCard article={item.article} />
               </div>
             )
@@ -123,7 +122,7 @@ export default function FeaturedArticles() {
               <div 
                 key={item.id} 
                 style={{ 
-                  height: '240px',
+                  minHeight: '200px',
                   contain: 'layout style'
                 }} 
                 aria-hidden="true" 
@@ -135,8 +134,7 @@ export default function FeaturedArticles() {
           return (
             <div 
               key={item.id}
-              className="col-span-full text-center bg-surface border border-border rounded-lg flex items-center justify-center"
-              style={{ height: GRID_HEIGHT }}
+              className="col-span-full text-center bg-surface border border-border rounded-lg flex items-center justify-center py-12"
             >
               <p className="text-text-secondary">표시할 글이 없습니다.</p>
             </div>
@@ -146,15 +144,15 @@ export default function FeaturedArticles() {
         {/* 스켈레톤 오버레이 - 로딩 중일 때만 표시 */}
         {loading && (
           <div 
-            className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-none"
+            className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 pointer-events-none"
             style={{ zIndex: 10 }}
           >
             {Array(5).fill(null).map((_, i) => (
               <div 
                 key={`skeleton-overlay-${i}`}
-                className="bg-surface border border-border rounded-lg p-6 animate-pulse" 
+                className="bg-surface border border-border rounded-lg p-4 md:p-6 animate-pulse" 
                 style={{ 
-                  height: '240px', 
+                  minHeight: '200px',
                   display: 'flex', 
                   flexDirection: 'column',
                   contain: 'layout style'

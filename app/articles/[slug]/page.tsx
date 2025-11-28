@@ -1,5 +1,5 @@
 import ArticleContentWithPreview from '@/components/ArticleContentWithPreview'
-import AuthButton from '@/components/AuthButton'
+import Header from '@/components/Header'
 import DeleteButton from '@/components/DeleteButton'
 import RelationTypeSelector from '@/components/RelationTypeSelector'
 import TableOfContents from '@/components/TableOfContents'
@@ -190,24 +190,7 @@ export default async function ArticlePage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-surface border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-primary-500 hover:text-primary-700 transition-colors">
-              프론트위키
-            </Link>
-            <nav className="flex gap-4 items-center">
-              <Link
-                href="/articles"
-                className="px-4 py-2 bg-secondary-300 text-text-primary rounded-lg hover:bg-secondary-500 transition-all font-medium"
-              >
-                글 목록
-              </Link>
-              <AuthButton />
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
         {/* 목차 컴포넌트 */}
         <TableOfContents content={articleDetail.content} />

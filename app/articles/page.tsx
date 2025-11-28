@@ -1,9 +1,9 @@
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
 import Link from 'next/link'
+import Header from '@/components/Header'
 import SearchBar from '@/components/SearchBar'
 import AnimatedCard from '@/components/AnimatedCard'
-import AuthButton from '@/components/AuthButton'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -102,18 +102,7 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-surface border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-primary-500 hover:text-primary-700 transition-colors">
-              프론트위키
-            </Link>
-            <nav className="flex gap-4 items-center">
-              <AuthButton />
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex justify-between items-center">
           <div>

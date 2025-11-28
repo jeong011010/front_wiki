@@ -129,13 +129,12 @@ export default function FilteredArticles() {
         onSearchChange={setSearchQuery}
       />
 
-      {/* 고정 높이 그리드 - DOM 구조는 항상 동일 */}
+      {/* 반응형 그리드 - 모바일에서는 고정 높이 제거 */}
       <div 
         ref={gridRef}
-        className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
         style={{ 
-          minHeight: GRID_HEIGHT, 
-          height: GRID_HEIGHT,
+          minHeight: 'auto',
           contain: 'layout style paint'
         }}
       >
@@ -143,7 +142,7 @@ export default function FilteredArticles() {
         {displayItems.map((item) => {
           if (item.type === 'article') {
             return (
-              <div key={item.id} style={{ height: '240px' }}>
+              <div key={item.id}>
                 <ArticleCard article={item.article} />
               </div>
             )
@@ -154,7 +153,7 @@ export default function FilteredArticles() {
               <div 
                 key={item.id} 
                 style={{ 
-                  height: '240px',
+                  minHeight: '200px',
                   contain: 'layout style'
                 }} 
                 aria-hidden="true" 
@@ -166,8 +165,7 @@ export default function FilteredArticles() {
           return (
             <div 
               key={item.id}
-              className="col-span-full text-center bg-surface border border-border rounded-lg flex items-center justify-center"
-              style={{ height: GRID_HEIGHT }}
+              className="col-span-full text-center bg-surface border border-border rounded-lg flex items-center justify-center py-12"
             >
               <p className="text-text-secondary">표시할 글이 없습니다.</p>
             </div>
@@ -177,15 +175,15 @@ export default function FilteredArticles() {
         {/* 스켈레톤 오버레이 - 로딩 중일 때만 표시 */}
         {loading && (
           <div 
-            className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-none"
+            className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 pointer-events-none"
             style={{ zIndex: 10 }}
           >
             {Array(6).fill(null).map((_, i) => (
               <div 
                 key={`skeleton-overlay-${i}`}
-                className="bg-surface border border-border rounded-lg p-6 animate-pulse" 
+                className="bg-surface border border-border rounded-lg p-4 md:p-6 animate-pulse" 
                 style={{ 
-                  height: '240px', 
+                  minHeight: '200px',
                   display: 'flex', 
                   flexDirection: 'column',
                   contain: 'layout style'
