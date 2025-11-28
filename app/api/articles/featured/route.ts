@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticateToken } from '@/lib/auth-middleware'
-import { getCache, setCache, createCacheKey, isCacheAvailable } from '@/lib/cache'
+import { getCache, setCache, createVersionedCacheKey, isCacheAvailable } from '@/lib/cache'
 import type { ArticlesListResponse, ApiErrorResponse } from '@/types'
 
 /**
@@ -20,13 +20,15 @@ export async function GET(request: NextRequest) {
     const authResult = await authenticateToken(request)
     const user = authResult.user
     
-    // 캐시 키 생성 (사용자 역할 포함)
-    const cacheKey = createCacheKey('articles:featured', sort, limit, user?.role || 'guest')
+    // 캐시 키 생성 (사용자 역할 포함, 버전 포함)
+    const cacheKey = await createVersionedCacheKey('articles:featured', sort, limit, user?.role || 'guest')
     
     // 캐시에서 조회 시도
-    if (isCacheAvailable()) {
+    // 개발 환경에서는 캐시를 사용하지 않음 (최신 데이터 확인을 위해)
+    if (isCacheAvailable() && process.env.NODE_ENV === 'production') {
       const cached = await getCache<ArticlesListResponse>(cacheKey)
       if (cached) {
+        console.log('[추천글 API] 캐시에서 반환:', cached.length, '개')
         return NextResponse.json<ArticlesListResponse>(cached)
       }
     }
@@ -130,8 +132,12 @@ export async function GET(request: NextRequest) {
       }
     })
     
-    // 캐시에 저장 (1시간)
-    if (isCacheAvailable()) {
+    // 디버깅: 조회된 글 목록 로그
+    console.log('[추천글 API] 조회된 글 개수:', articlesWithPreview.length)
+    console.log('[추천글 API] 조회된 글 ID 목록:', articlesWithPreview.map(a => ({ id: a.id, title: a.title })))
+    
+    // 캐시에 저장 (1시간, 프로덕션에서만)
+    if (isCacheAvailable() && process.env.NODE_ENV === 'production') {
       await setCache(cacheKey, articlesWithPreview, 3600)
     }
     

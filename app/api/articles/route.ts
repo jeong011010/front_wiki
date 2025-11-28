@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { slugify } from '@/lib/utils'
 import { detectKeywords } from '@/lib/link-detector'
 import { authenticateToken, requireAuth } from '@/lib/auth-middleware'
-import { getCache, setCache, createCacheKey, isCacheAvailable, deleteCachePattern, deleteCache } from '@/lib/cache'
+import { getCache, setCache, createVersionedCacheKey, isCacheAvailable } from '@/lib/cache'
+import { incrementCacheVersion } from '@/lib/cache-version'
 import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
 import type { ArticlesListResponse, ArticleCreateResponse, ApiErrorResponse } from '@/types'
@@ -34,15 +35,17 @@ export async function GET(request: NextRequest) {
     const authResult = await authenticateToken(request)
     const user = authResult.user
     
-    // 캐시 키 생성 (검색어가 없을 때만 캐싱)
+    // 캐시 키 생성 (검색어가 없을 때만 캐싱, 버전 포함)
     const cacheKey = search 
       ? null 
-      : createCacheKey('articles', category || 'all', sort, limit, offset, user?.role || 'guest')
+      : await createVersionedCacheKey('articles', category || 'all', sort, limit, offset, user?.role || 'guest')
     
     // 캐시에서 조회 시도 (검색어가 없을 때만)
-    if (cacheKey && isCacheAvailable()) {
+    // 개발 환경에서는 캐시를 사용하지 않음 (최신 데이터 확인을 위해)
+    if (cacheKey && isCacheAvailable() && process.env.NODE_ENV === 'production') {
       const cached = await getCache<ArticlesListResponse>(cacheKey)
       if (cached) {
+        console.log('[전체글 API] 캐시에서 반환:', cached.length, '개')
         return NextResponse.json<ArticlesListResponse>(cached)
       }
     }
@@ -158,8 +161,12 @@ export async function GET(request: NextRequest) {
         }
       })
       
-      // 캐시에 저장 (30분, 검색어가 없을 때만)
-      if (cacheKey && isCacheAvailable()) {
+      // 디버깅: 조회된 글 목록 로그 (인기순)
+      console.log('[전체글 API - 인기순] 조회된 글 개수:', articlesWithPreview.length)
+      console.log('[전체글 API - 인기순] 조회된 글 ID 목록:', articlesWithPreview.map(a => ({ id: a.id, title: a.title })))
+      
+      // 캐시에 저장 (30분, 검색어가 없을 때만, 프로덕션에서만)
+      if (cacheKey && isCacheAvailable() && process.env.NODE_ENV === 'production') {
         await setCache(cacheKey, articlesWithPreview, 1800)
       }
       
@@ -208,8 +215,12 @@ export async function GET(request: NextRequest) {
         }
       })
       
-      // 캐시에 저장 (30분, 검색어가 없을 때만)
-      if (cacheKey && isCacheAvailable()) {
+      // 디버깅: 조회된 글 목록 로그 (최신순/제목순)
+      console.log('[전체글 API - 최신순/제목순] 조회된 글 개수:', articlesWithPreview.length)
+      console.log('[전체글 API - 최신순/제목순] 조회된 글 ID 목록:', articlesWithPreview.map(a => ({ id: a.id, title: a.title })))
+      
+      // 캐시에 저장 (30분, 검색어가 없을 때만, 프로덕션에서만)
+      if (cacheKey && isCacheAvailable() && process.env.NODE_ENV === 'production') {
         await setCache(cacheKey, articlesWithPreview, 1800)
       }
       
@@ -310,11 +321,9 @@ export async function POST(request: NextRequest) {
       console.error('Link detection error:', linkError)
     }
     
-    // 캐시 무효화
+    // 캐시 버전 증가 (모든 캐시 자동 무효화)
     if (isCacheAvailable()) {
-      await deleteCachePattern('articles:*')
-      await deleteCachePattern('diagram:*')
-      await deleteCache('keywords')
+      await incrementCacheVersion()
     }
     
     return NextResponse.json<ArticleCreateResponse>(article)
