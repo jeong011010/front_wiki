@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { extractHeadings } from '@/lib/markdown-utils'
 
 interface TableOfContentsProps {
@@ -12,6 +12,7 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
   const headings = useMemo(() => extractHeadings(content), [content])
   const [activeId, setActiveId] = useState<string>('')
   const [isVisible, setIsVisible] = useState(false)
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
   const observerRef = useRef<IntersectionObserver | null>(null)
 
   // 스크롤 위치에 따라 목차 표시/숨김
@@ -127,46 +128,94 @@ export default function TableOfContents({ content }: TableOfContentsProps) {
     return null
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: isVisible ? 1 : 0, x: isVisible ? 0 : -20 }}
-      transition={{ duration: 0.2 }}
-      className={`hidden lg:block fixed left-4 top-1/2 -translate-y-1/2 z-[100] ${
-        isVisible ? 'pointer-events-auto' : 'pointer-events-none'
-      }`}
-      data-table-of-contents
-    >
-      <div className="bg-surface border border-border rounded-lg shadow-lg p-4 max-h-[80vh] overflow-y-auto w-64">
-        <h2 className="text-sm font-semibold text-text-primary mb-3 sticky top-0 bg-surface pb-2 border-b border-border">
-          목차
-        </h2>
-        <nav className="space-y-1">
-          {headings.map((heading, index) => {
-            const isActive = activeId === heading.id
-            const indent = heading.level - 1
+  const tocContent = (
+    <div className="bg-surface border border-border rounded-lg shadow-lg p-4 max-h-[80vh] overflow-y-auto w-full lg:w-64">
+      <h2 className="text-sm font-semibold text-text-primary mb-3 sticky top-0 bg-surface pb-2 border-b border-border">
+        목차
+      </h2>
+      <nav className="space-y-1">
+        {headings.map((heading, index) => {
+          const isActive = activeId === heading.id
+          const indent = heading.level - 1
 
-            return (
-              <button
-                key={`${heading.id}-${index}`}
-                onClick={() => handleHeadingClick(heading.id)}
-                className={`block w-full text-left px-2 py-1.5 rounded text-sm transition-all truncate cursor-pointer ${
-                  isActive
-                    ? 'text-primary-500 font-medium bg-primary-50 dark:bg-primary-900/20'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-                }`}
-                style={{
-                  paddingLeft: `${0.5 + indent * 0.75}rem`,
-                }}
-                title={heading.text}
-                type="button"
-              >
-                {heading.text}
-              </button>
-            )
-          })}
-        </nav>
+          return (
+            <button
+              key={`${heading.id}-${index}`}
+              onClick={() => {
+                handleHeadingClick(heading.id)
+                setIsMobileOpen(false) // 모바일에서 클릭 시 닫기
+              }}
+              className={`block w-full text-left px-2 py-1.5 rounded text-sm transition-all truncate cursor-pointer ${
+                isActive
+                  ? 'text-primary-500 font-medium bg-primary-50 dark:bg-primary-900/20'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+              }`}
+              style={{
+                paddingLeft: `${0.5 + indent * 0.75}rem`,
+              }}
+              title={heading.text}
+              type="button"
+            >
+              {heading.text}
+            </button>
+          )
+        })}
+      </nav>
+    </div>
+  )
+
+  return (
+    <>
+      {/* 데스크톱: 고정 사이드바 */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: isVisible ? 1 : 0, x: isVisible ? 0 : -20 }}
+        transition={{ duration: 0.2 }}
+        className={`hidden lg:block fixed left-4 top-1/2 -translate-y-1/2 z-[100] ${
+          isVisible ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
+        data-table-of-contents
+      >
+        {tocContent}
+      </motion.div>
+
+      {/* 모바일/태블릿: 접기/펼치기 버튼 */}
+      <div className="lg:hidden mb-4">
+        <button
+          onClick={() => setIsMobileOpen(!isMobileOpen)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-lg hover:bg-surface-hover transition-colors"
+          aria-expanded={isMobileOpen}
+          aria-label="목차"
+        >
+          <span className="text-sm font-semibold text-text-primary">목차</span>
+          <svg
+            className={`w-5 h-5 text-text-secondary transition-transform ${isMobileOpen ? 'rotate-180' : ''}`}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <AnimatePresence>
+          {isMobileOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-2">
+                {tocContent}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </motion.div>
+    </>
   )
 }
