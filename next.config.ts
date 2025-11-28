@@ -48,8 +48,10 @@ const nextConfig: NextConfig = {
 export default process.env.SENTRY_DSN
   ? withSentryConfig(nextConfig, {
       // Sentry 설정 옵션
-      silent: true,
+      silent: process.env.NODE_ENV === 'production', // 개발 환경에서는 로그 표시
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT,
+      widenClientFileUpload: true,
+      tunnelRoute: '/monitoring',
     })
   : nextConfig;
