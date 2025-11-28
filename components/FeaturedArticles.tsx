@@ -28,6 +28,7 @@ export default function FeaturedArticles() {
         const response = await fetch(`/api/articles/featured?sort=${sort}&limit=10`)
         if (response.ok) {
           const data = await response.json()
+          console.log('[추천글 API]', JSON.stringify(data, null, 2))
           setArticles(data)
         }
       } catch (error) {
