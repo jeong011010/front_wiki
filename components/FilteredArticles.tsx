@@ -119,16 +119,24 @@ export default function FilteredArticles() {
 
   return (
     <section>
-      <ArticleFilterBar
-        selectedCategory={selectedCategory}
-        sortBy={sortBy}
-        includeSubcategories={includeSubcategories}
-        searchQuery={searchQuery}
-        onCategoryChange={setSelectedCategory}
-        onSortChange={setSortBy}
-        onIncludeSubcategoriesChange={setIncludeSubcategories}
-        onSearchChange={setSearchQuery}
-      />
+      <div className="mb-4">
+        <ArticleFilterBar
+          selectedCategory={selectedCategory}
+          sortBy={sortBy}
+          includeSubcategories={includeSubcategories}
+          searchQuery={searchQuery}
+          onCategoryChange={setSelectedCategory}
+          onSortChange={setSortBy}
+          onIncludeSubcategoriesChange={setIncludeSubcategories}
+          onSearchChange={setSearchQuery}
+        />
+        {/* 필터 결과 개수 표시 */}
+        {!loading && articles.length > 0 && (
+          <p className="text-sm text-text-secondary mt-2 px-2">
+            총 <span className="font-semibold text-text-primary">{articles.length}</span>개의 글이 있습니다.
+          </p>
+        )}
+      </div>
 
       {/* 반응형 그리드 - 모바일에서는 고정 높이 제거 */}
       <div 
