@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { addRateLimitHeaders, withRateLimit } from '@/app/api/middleware/rate-limit'
 import { verifyPassword } from '@/lib/auth'
 import { generateAccessToken, generateRefreshToken } from '@/lib/jwt'
+import { prisma } from '@/lib/prisma'
 import { hash } from 'bcryptjs'
+import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
 const loginSchema = z.object({
@@ -12,6 +13,24 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate Limiting 적용 (5분에 5회 제한 - 무차별 대입 공격 방지)
+    const rateLimitResult = await withRateLimit(request, {
+      interval: 300, // 5분
+      limit: 5, // 5회
+    })
+
+    if (!rateLimitResult.success) {
+      const response = NextResponse.json(
+        {
+          error: 'Too many requests',
+          message: '로그인 시도 횟수를 초과했습니다. 5분 후 다시 시도해주세요.',
+          reset: new Date(rateLimitResult.reset).toISOString(),
+        },
+        { status: 429 }
+      )
+      return addRateLimitHeaders(response, rateLimitResult)
+    }
+
     const body = await request.json()
     const { email, password } = loginSchema.parse(body)
     
@@ -81,6 +100,9 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 7, // 7일
       path: '/',
     })
+    
+    // Rate Limit 헤더 추가
+    addRateLimitHeaders(response, rateLimitResult)
     
     return response
   } catch (error) {
