@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import * as Sentry from '@sentry/nextjs'
 
 export default function TestSentryPage() {
@@ -127,12 +128,12 @@ export default function TestSentryPage() {
         </div>
 
         <div className="mt-4 text-center">
-          <a
+          <Link
             href="/"
             className="text-sm text-text-tertiary hover:text-text-secondary transition-colors"
           >
             ← 메인으로 돌아가기
-          </a>
+          </Link>
         </div>
       </div>
     </div>

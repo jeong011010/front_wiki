@@ -6,9 +6,12 @@ export async function GET(request: Request) {
   const type = searchParams.get('type') || 'error'
 
   try {
+    let errorMessage: string | undefined
+
     switch (type) {
       case 'error':
-        throw new Error('테스트 에러: Sentry 서버 사이드 연동 확인용')
+        errorMessage = '테스트 에러: Sentry 서버 사이드 연동 확인용'
+        throw new Error(errorMessage)
       case 'message':
         Sentry.captureMessage('테스트 메시지: Sentry 서버 사이드 연동 확인용', 'info')
         break
@@ -28,7 +31,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       message: `Sentry에 테스트 ${type}가 전송되었습니다.`,
-      error: type === 'error' ? '테스트 에러: Sentry 서버 사이드 연동 확인용' : undefined,
+      error: errorMessage,
     })
   } catch (error) {
     Sentry.captureException(error)
