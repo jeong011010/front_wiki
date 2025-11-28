@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import { motion } from 'framer-motion'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, Alert } from '@/components/ui'
+import { toast } from '@/components/ui'
 import { register } from '@/lib/auth-client'
 
 export default function RegisterPage() {
@@ -22,7 +23,9 @@ export default function RegisterPage() {
     setError('')
 
     if (password !== confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.')
+      const errorMessage = '비밀번호가 일치하지 않습니다.'
+      setError(errorMessage)
+      toast.error(errorMessage)
       return
     }
 
@@ -31,12 +34,17 @@ export default function RegisterPage() {
     try {
       await register(email, password, name)
       
+      // 회원가입 성공 토스트
+      toast.success('회원가입이 완료되었습니다.')
+      
       // 회원가입 성공 시 메인 페이지로 이동
       router.push('/')
       router.refresh()
     } catch (error) {
       console.error('Register error:', error)
-      setError(error instanceof Error ? error.message : '회원가입에 실패했습니다.')
+      const errorMessage = error instanceof Error ? error.message : '회원가입에 실패했습니다.'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -55,9 +63,9 @@ export default function RegisterPage() {
           <p className="text-sm md:text-base text-text-secondary mb-6">프론트위키에 가입하세요</p>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-xs md:text-sm">
+            <Alert variant="error" className="mb-4">
               {error}
-            </div>
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">

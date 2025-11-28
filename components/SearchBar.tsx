@@ -1,19 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button, Input } from '@/components/ui'
 
 export default function SearchBar() {
   const router = useRouter()
-  const [query, setQuery] = useState('')
+  const searchParams = useSearchParams()
+  const [query, setQuery] = useState(searchParams.get('search') || '')
   const [isSearching, setIsSearching] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (query.trim()) {
+      setIsSearching(true)
       router.push(`/articles?search=${encodeURIComponent(query.trim())}`)
+      // 검색 후 로딩 상태 리셋
+      setTimeout(() => setIsSearching(false), 500)
     }
   }
 

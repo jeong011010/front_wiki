@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import ArticleFilterBar from './ArticleFilterBar'
 import ArticleCard from './ArticleCard'
 import ArticleListModal from './ArticleListModal'
+import { ArticleCardSkeleton } from '@/components/ui'
 
 interface Article {
   id: string
@@ -179,30 +180,7 @@ export default function FilteredArticles() {
             style={{ zIndex: 10 }}
           >
             {Array(6).fill(null).map((_, i) => (
-              <div 
-                key={`skeleton-overlay-${i}`}
-                className="bg-surface border border-border rounded-lg p-4 md:p-6 animate-pulse" 
-                style={{ 
-                  minHeight: '200px',
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  contain: 'layout style'
-                }}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded flex-1" />
-                  <div className="ml-3 h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
-                </div>
-                <div className="flex-1 mb-4">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                </div>
-                <div className="flex items-center justify-between text-xs mt-auto">
-                  <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
-                  <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
-                </div>
-              </div>
+              <ArticleCardSkeleton key={`skeleton-overlay-${i}`} />
             ))}
           </div>
         )}

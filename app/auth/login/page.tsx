@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import { motion } from 'framer-motion'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, Alert } from '@/components/ui'
+import { toast } from '@/components/ui'
 import { login } from '@/lib/auth-client'
 
 function LoginForm() {
@@ -26,12 +27,17 @@ function LoginForm() {
     try {
       await login(email, password)
       
+      // 로그인 성공 토스트
+      toast.success('로그인되었습니다.')
+      
       // 로그인 성공 시 리다이렉트
       router.push(redirect)
       router.refresh()
     } catch (error) {
       console.error('Login error:', error)
-      setError(error instanceof Error ? error.message : '로그인에 실패했습니다.')
+      const errorMessage = error instanceof Error ? error.message : '로그인에 실패했습니다.'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -50,9 +56,9 @@ function LoginForm() {
           <p className="text-sm md:text-base text-text-secondary mb-6">프론트위키에 로그인하세요</p>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-xs md:text-sm">
+            <Alert variant="error" className="mb-4">
               {error}
-            </div>
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">

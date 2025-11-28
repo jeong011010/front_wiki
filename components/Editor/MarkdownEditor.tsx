@@ -7,6 +7,7 @@ import { escapeRegex } from '@/lib/regex-utils'
 import { apiPost, apiPut, apiRequest } from '@/lib/http'
 import type { ArticleCreateResponse, ArticleUpdateResponse } from '@/types'
 import { marked } from 'marked'
+import { Button, toast } from '@/components/ui'
 import CategorySelect from '@/components/CategorySelect'
 import 'github-markdown-css/github-markdown.css'
 
@@ -290,13 +291,13 @@ export default function MarkdownEditor({
   // 이미지 파일 처리 (서버 업로드)
   const handleImageUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert('이미지 파일만 업로드할 수 있습니다.')
+      toast.error('이미지 파일만 업로드할 수 있습니다.')
       return
     }
 
     // 파일 크기 제한 (10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('파일 크기는 10MB 이하여야 합니다.')
+      toast.error('파일 크기는 10MB 이하여야 합니다.')
       return
     }
 
@@ -341,7 +342,7 @@ export default function MarkdownEditor({
     } catch (error) {
       console.error('Image upload error:', error)
       const errorMessage = error instanceof Error ? error.message : '이미지 업로드에 실패했습니다.'
-      alert(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsUploading(false)
     }
@@ -402,11 +403,12 @@ export default function MarkdownEditor({
         ? await apiPut<ArticleUpdateResponse>(`/api/articles/${articleId}`, data)
         : await apiPost<ArticleCreateResponse>('/api/articles', data)
 
+      toast.success(articleId ? '글이 수정되었습니다.' : '글이 작성되었습니다.')
       router.push(`/articles/${article.slug}`)
     } catch (error) {
       console.error('Error saving article:', error)
       const errorMessage = error instanceof Error ? error.message : '글 저장에 실패했습니다.'
-      alert(`글 저장에 실패했습니다.\n\n${errorMessage}`)
+      toast.error(`글 저장에 실패했습니다: ${errorMessage}`)
     } finally {
       setIsSubmitting(false)
     }
@@ -758,20 +760,21 @@ export default function MarkdownEditor({
       </div>
 
       <div className="flex gap-4">
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting}
-          className="px-6 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-all hover:shadow-md"
+          size="lg"
         >
           {isSubmitting ? '저장 중...' : articleId ? '수정' : '작성'}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => router.back()}
-          className="px-6 py-2.5 bg-secondary-300 text-text-primary rounded-lg hover:bg-secondary-500 font-medium transition-all"
+          variant="secondary"
+          size="lg"
         >
           취소
-        </button>
+        </Button>
       </div>
     </form>
   )

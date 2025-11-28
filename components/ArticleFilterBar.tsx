@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Input } from '@/components/ui'
 
 interface Category {
   id: string
@@ -330,12 +331,11 @@ export default function ArticleFilterBar({
     <div className="bg-surface border border-border rounded-lg p-4 mb-6">
       {/* 첫 번째 줄: 검색 바 */}
       <div className="mb-4">
-        <input
+        <Input
           type="text"
           placeholder="카테고리 전체에서 검색..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full px-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
         />
       </div>
 
