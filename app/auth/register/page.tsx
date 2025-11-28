@@ -131,7 +131,7 @@ export default function RegisterPage() {
                 required
                 minLength={6}
                 autoComplete="new-password"
-                error={!!error || (confirmPassword && password !== confirmPassword)}
+                error={!!error || !!(confirmPassword && password !== confirmPassword)}
               />
             </div>
 

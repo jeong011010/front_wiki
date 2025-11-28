@@ -50,14 +50,13 @@ export const toast = {
 }
 
 export default function ToastContainer() {
-  const [toasts, setToasts] = useState<Toast[]>([])
+  const [toasts, setToasts] = useState<Toast[]>(() => [...globalToasts])
 
   useEffect(() => {
     const listener = (newToasts: Toast[]) => {
       setToasts(newToasts)
     }
     toastListeners.push(listener)
-    setToasts([...globalToasts])
 
     return () => {
       toastListeners = toastListeners.filter((l) => l !== listener)
@@ -67,19 +66,19 @@ export default function ToastContainer() {
   return (
     <div className="fixed top-20 right-4 z-[9999] flex flex-col gap-2 max-w-sm w-full">
       <AnimatePresence>
-        {toasts.map((toast) => (
+        {toasts.map((toastItem) => (
           <motion.div
-            key={toast.id}
+            key={toastItem.id}
             initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 100 }}
             transition={{ duration: 0.2 }}
           >
-            <Alert variant={toast.variant} className="shadow-lg">
+            <Alert variant={toastItem.variant} className="shadow-lg">
               <div className="flex items-center justify-between">
-                <span>{toast.message}</span>
+                <span>{toastItem.message}</span>
                 <button
-                  onClick={() => toast.remove(toast.id)}
+                  onClick={() => toast.remove(toastItem.id)}
                   className="ml-4 text-current opacity-70 hover:opacity-100 transition-opacity"
                   aria-label="닫기"
                 >

@@ -23,8 +23,10 @@ export default function Header() {
 
   // 경로 변경 시 메뉴 닫기
   useEffect(() => {
-    setIsMenuOpen(false)
-  }, [pathname])
+    if (isMenuOpen) {
+      setIsMenuOpen(false)
+    }
+  }, [pathname, isMenuOpen])
 
   const navLinks = [
     { href: '/diagram', label: '지식 그래프' },
