@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import type { Article } from '@prisma/client'
 
@@ -102,18 +103,102 @@ export default function ArticleCard({ article }: ArticleCardProps) {
     : categoryColors.general
 
   const preview = article.preview || article.title
+  const [rotateX, setRotateX] = useState(0)
+  const [rotateY, setRotateY] = useState(0)
+  const [isMobile, setIsMobile] = useState(true)
+  const cardRef = useRef<HTMLAnchorElement>(null)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // 모바일에서는 3D 효과 비활성화
+    if (isMobile) return
+    
+    if (!cardRef.current) return
+    
+    const card = cardRef.current
+    const rect = card.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+    
+    const mouseX = e.clientX - centerX
+    const mouseY = e.clientY - centerY
+    
+    // 회전 각도 계산 (최대 8도, 더 부드럽게)
+    const maxRotate = 8
+    const rotateXValue = (mouseY / (rect.height / 2)) * maxRotate * -1
+    const rotateYValue = (mouseX / (rect.width / 2)) * maxRotate
+    
+    setRotateX(rotateXValue)
+    setRotateY(rotateYValue)
+  }
+
+  const handleMouseLeave = () => {
+    setRotateX(0)
+    setRotateY(0)
+  }
 
   return (
     <Link
+      ref={cardRef}
       href={`/articles/${article.slug}`}
-      className="block bg-surface border border-border rounded-lg p-2.5 sm:p-3 md:p-4 hover:shadow-md transition-[box-shadow,border-color] hover:border-primary-300 group"
+      className="block relative bg-gradient-to-br from-surface via-surface to-surface-hover border border-border rounded-xl p-3 sm:p-4 md:p-5 group overflow-hidden"
       style={{ 
         display: 'flex', 
         flexDirection: 'column',
-        contain: 'layout style'
+        contain: 'layout style',
+        transformStyle: 'preserve-3d',
+        perspective: '1000px',
+        transform: !isMobile
+          ? `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${rotateX !== 0 || rotateY !== 0 ? 1.02 : 1})`
+          : 'none',
+        transition: 'transform 0.15s ease-out, box-shadow 0.3s ease-out',
+        boxShadow: rotateX !== 0 || rotateY !== 0 
+          ? '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.15) inset'
+          : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05) inset',
+        maxWidth: '100%',
+        minHeight: '160px',
+        height: '100%',
       }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
-      <div className="flex items-start justify-between mb-1.5 sm:mb-2 gap-1.5 sm:gap-2">
+      {/* 빛 반사 효과 (그라데이션 오버레이) - 포켓몬 카드 스타일 */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-xl"
+        style={{
+          background: `linear-gradient(${135 + rotateY * 3}deg, 
+            rgba(255, 255, 255, 0.4) 0%, 
+            rgba(255, 255, 255, 0.1) 30%,
+            transparent 60%, 
+            rgba(0, 0, 0, 0.1) 100%)`,
+          transform: `translateZ(30px)`,
+          mixBlendMode: 'overlay',
+        }}
+      />
+      
+      {/* 카드 테두리 하이라이트 */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-xl"
+        style={{
+          background: `linear-gradient(${45 + rotateY * 2}deg, 
+            transparent 0%,
+            rgba(79, 70, 229, 0.1) 50%,
+            transparent 100%)`,
+          border: '1px solid rgba(79, 70, 229, 0.2)',
+        }}
+      />
+      
+      {/* 카드 내용 */}
+      <div className="relative z-10 flex flex-col h-full">
+        <div className="flex items-start justify-between mb-1.5 sm:mb-2 gap-1.5 sm:gap-2">
         <h3 className="text-sm sm:text-base md:text-lg font-semibold text-text-primary group-hover:text-primary-500 transition-colors line-clamp-2 flex-1">
           {article.title}
         </h3>
@@ -130,22 +215,23 @@ export default function ArticleCard({ article }: ArticleCardProps) {
         </p>
       )}
       
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-text-tertiary mt-auto">
-        <span>
-          {new Date(article.createdAt).toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </span>
-        {new Date(article.updatedAt).getTime() !== new Date(article.createdAt).getTime() && (
-          <span className="text-text-tertiary">
-            수정: {new Date(article.updatedAt).toLocaleDateString('ko-KR', {
-              month: 'short',
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-text-tertiary mt-auto">
+          <span>
+            {new Date(article.createdAt).toLocaleDateString('ko-KR', {
+              year: 'numeric',
+              month: 'long',
               day: 'numeric',
             })}
           </span>
-        )}
+          {new Date(article.updatedAt).getTime() !== new Date(article.createdAt).getTime() && (
+            <span className="text-text-tertiary">
+              수정: {new Date(article.updatedAt).toLocaleDateString('ko-KR', {
+                month: 'short',
+                day: 'numeric',
+              })}
+            </span>
+          )}
+        </div>
       </div>
     </Link>
   )

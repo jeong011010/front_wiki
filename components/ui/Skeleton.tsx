@@ -40,25 +40,26 @@ export default function Skeleton({
 export function ArticleCardSkeleton() {
   return (
     <div 
-      className="bg-surface border border-border rounded-lg p-4 md:p-6"
+      className="bg-surface border border-border rounded-xl p-3 sm:p-4 md:p-5"
       style={{ 
         display: 'flex', 
         flexDirection: 'column',
-        contain: 'layout style'
+        contain: 'layout style',
+        minHeight: '160px',
+        height: '100%',
       }}
     >
-      <div className="flex items-start justify-between mb-2 md:mb-3 gap-2">
-        <Skeleton variant="text" className="h-5 md:h-6 flex-1" />
-        <Skeleton variant="rectangular" className="h-5 w-16 flex-shrink-0" />
+      <div className="flex items-start justify-between mb-1.5 sm:mb-2 gap-1.5 sm:gap-2">
+        <Skeleton variant="text" className="h-4 sm:h-5 md:h-6 flex-1" />
+        <Skeleton variant="rectangular" className="h-4 sm:h-5 w-12 sm:w-16 flex-shrink-0 rounded" />
       </div>
-      <div className="flex-1 mb-3 md:mb-4 space-y-2">
-        <Skeleton variant="text" className="h-4 w-full" />
-        <Skeleton variant="text" className="h-4 w-full" />
-        <Skeleton variant="text" className="h-4 w-3/4" />
+      <div className="flex-1 mb-1.5 sm:mb-2 space-y-1.5">
+        <Skeleton variant="text" className="h-3 sm:h-4 w-full" />
+        <Skeleton variant="text" className="h-3 sm:h-4 w-5/6" />
       </div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 sm:gap-0 text-xs mt-auto">
-        <Skeleton variant="text" className="h-3 w-24" />
-        <Skeleton variant="text" className="h-3 w-16" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-0.5 sm:gap-1 mt-auto">
+        <Skeleton variant="text" className="h-3 w-20 sm:w-24" />
+        <Skeleton variant="text" className="h-3 w-12 sm:w-16" />
       </div>
     </div>
   )
