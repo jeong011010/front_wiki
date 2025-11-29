@@ -138,10 +138,10 @@ export default function FilteredArticles() {
         )}
       </div>
 
-      {/* 반응형 그리드 - 모바일에서는 고정 높이 제거 */}
+      {/* 반응형 그리드 - 한 줄에 2개씩 표시 */}
       <div 
         ref={gridRef}
-        className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
+        className="relative grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4"
         style={{ 
           minHeight: 'auto',
           contain: 'layout style paint'
@@ -184,7 +184,7 @@ export default function FilteredArticles() {
         {/* 스켈레톤 오버레이 - 로딩 중일 때만 표시 */}
         {loading && (
           <div 
-            className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 pointer-events-none"
+            className="absolute inset-0 grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 pointer-events-none"
             style={{ zIndex: 10 }}
           >
             {Array(6).fill(null).map((_, i) => (

@@ -24,7 +24,7 @@ export default function SearchBar() {
   return (
     <motion.form
       onSubmit={handleSubmit}
-      className="flex gap-2"
+      className="flex gap-1.5"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
@@ -33,13 +33,14 @@ export default function SearchBar() {
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="글 검색..."
-        className="min-w-[200px] md:min-w-[250px]"
+        placeholder="검색..."
+        className="min-w-[150px] md:min-w-[180px] text-sm py-1.5 md:py-2"
       />
       <Button
         type="submit"
         disabled={isSearching || !query.trim()}
-        size="md"
+        size="sm"
+        className="px-3 py-1.5 md:py-2 text-sm"
       >
         검색
       </Button>

@@ -106,31 +106,31 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   return (
     <Link
       href={`/articles/${article.slug}`}
-      className="block bg-surface border border-border rounded-lg p-4 md:p-6 hover:shadow-lg transition-[box-shadow,border-color] hover:border-primary-300 group"
+      className="block bg-surface border border-border rounded-lg p-3 md:p-4 hover:shadow-md transition-[box-shadow,border-color] hover:border-primary-300 group"
       style={{ 
         display: 'flex', 
         flexDirection: 'column',
         contain: 'layout style'
       }}
     >
-      <div className="flex items-start justify-between mb-2 md:mb-3 gap-2">
-        <h3 className="text-lg md:text-xl font-semibold text-text-primary group-hover:text-primary-500 transition-colors line-clamp-2 flex-1">
+      <div className="flex items-start justify-between mb-2 gap-2">
+        <h3 className="text-base md:text-lg font-semibold text-text-primary group-hover:text-primary-500 transition-colors line-clamp-2 flex-1">
           {article.title}
         </h3>
         {article.category && (
-          <span className={`px-2 py-1 text-xs font-medium rounded flex-shrink-0 ${categoryColor.bg} ${categoryColor.text} whitespace-nowrap`}>
+          <span className={`px-1.5 py-0.5 text-xs font-medium rounded flex-shrink-0 ${categoryColor.bg} ${categoryColor.text} whitespace-nowrap`}>
             {article.category}
           </span>
         )}
       </div>
       
       {preview && (
-        <p className="text-text-secondary text-sm mb-3 md:mb-4 line-clamp-2 md:line-clamp-3 flex-1">
+        <p className="text-text-secondary text-xs md:text-sm mb-2 line-clamp-2 flex-1">
           {preview}
         </p>
       )}
       
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 sm:gap-0 text-xs text-text-tertiary mt-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-xs text-text-tertiary mt-auto">
         <span>
           {new Date(article.createdAt).toLocaleDateString('ko-KR', {
             year: 'numeric',
