@@ -34,13 +34,13 @@ export default function SearchBar() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="검색..."
-        className="min-w-[150px] md:min-w-[180px] text-sm py-1.5 md:py-2"
+        className="min-w-[120px] sm:min-w-[150px] md:min-w-[180px] text-xs sm:text-sm py-1 sm:py-1.5 md:py-2"
       />
       <Button
         type="submit"
         disabled={isSearching || !query.trim()}
         size="sm"
-        className="px-3 py-1.5 md:py-2 text-sm"
+        className="px-2 sm:px-3 py-1 sm:py-1.5 md:py-2 text-xs sm:text-sm whitespace-nowrap"
       >
         검색
       </Button>

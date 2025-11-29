@@ -106,31 +106,31 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   return (
     <Link
       href={`/articles/${article.slug}`}
-      className="block bg-surface border border-border rounded-lg p-3 md:p-4 hover:shadow-md transition-[box-shadow,border-color] hover:border-primary-300 group"
+      className="block bg-surface border border-border rounded-lg p-2.5 sm:p-3 md:p-4 hover:shadow-md transition-[box-shadow,border-color] hover:border-primary-300 group"
       style={{ 
         display: 'flex', 
         flexDirection: 'column',
         contain: 'layout style'
       }}
     >
-      <div className="flex items-start justify-between mb-2 gap-2">
-        <h3 className="text-base md:text-lg font-semibold text-text-primary group-hover:text-primary-500 transition-colors line-clamp-2 flex-1">
+      <div className="flex items-start justify-between mb-1.5 sm:mb-2 gap-1.5 sm:gap-2">
+        <h3 className="text-sm sm:text-base md:text-lg font-semibold text-text-primary group-hover:text-primary-500 transition-colors line-clamp-2 flex-1">
           {article.title}
         </h3>
         {article.category && (
-          <span className={`px-1.5 py-0.5 text-xs font-medium rounded flex-shrink-0 ${categoryColor.bg} ${categoryColor.text} whitespace-nowrap`}>
+          <span className={`px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-xs font-medium rounded flex-shrink-0 ${categoryColor.bg} ${categoryColor.text} whitespace-nowrap`}>
             {article.category}
           </span>
         )}
       </div>
       
       {preview && (
-        <p className="text-text-secondary text-xs md:text-sm mb-2 line-clamp-2 flex-1">
+        <p className="text-text-secondary text-[11px] sm:text-xs md:text-sm mb-1.5 sm:mb-2 line-clamp-2 flex-1">
           {preview}
         </p>
       )}
       
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-xs text-text-tertiary mt-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-text-tertiary mt-auto">
         <span>
           {new Date(article.createdAt).toLocaleDateString('ko-KR', {
             year: 'numeric',

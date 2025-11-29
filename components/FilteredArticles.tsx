@@ -132,16 +132,16 @@ export default function FilteredArticles() {
         />
         {/* 필터 결과 개수 표시 */}
         {!loading && articles.length > 0 && (
-          <p className="text-xs md:text-sm text-text-secondary mt-2 px-2">
+          <p className="text-[10px] sm:text-xs md:text-sm text-text-secondary mt-1 sm:mt-2 px-1 sm:px-2">
             총 <span className="font-semibold text-text-primary">{articles.length}</span>개의 글이 있습니다.
           </p>
         )}
       </div>
 
-      {/* 반응형 그리드 - 한 줄에 2개씩 표시 */}
+      {/* 반응형 그리드 - 모바일 1개, 태블릿 이상 2개씩 표시 */}
       <div 
         ref={gridRef}
-        className="relative grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4"
+        className="relative grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4"
         style={{ 
           minHeight: 'auto',
           contain: 'layout style paint'
@@ -184,7 +184,7 @@ export default function FilteredArticles() {
         {/* 스켈레톤 오버레이 - 로딩 중일 때만 표시 */}
         {loading && (
           <div 
-            className="absolute inset-0 grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 pointer-events-none"
+            className="absolute inset-0 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 pointer-events-none"
             style={{ zIndex: 10 }}
           >
             {Array(6).fill(null).map((_, i) => (
