@@ -65,9 +65,10 @@ export async function POST(request: NextRequest) {
     for (const sql of commands) {
       try {
         await prisma.$executeRawUnsafe(sql)
-      } catch (error: any) {
+      } catch (error: unknown) {
         // 테이블이 이미 존재하는 경우 무시
-        if (!error.message?.includes('already exists')) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        if (!errorMessage.includes('already exists')) {
           throw error
         }
       }
@@ -90,10 +91,11 @@ export async function POST(request: NextRequest) {
     for (const sql of indexes) {
       try {
         await prisma.$executeRawUnsafe(sql)
-      } catch (error: any) {
+      } catch (error: unknown) {
         // 인덱스가 이미 존재하는 경우 무시
-        if (!error.message?.includes('already exists')) {
-          console.warn('Index creation warning:', error.message)
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        if (!errorMessage.includes('already exists')) {
+          console.warn('Index creation warning:', errorMessage)
         }
       }
     }
@@ -126,10 +128,11 @@ export async function POST(request: NextRequest) {
     for (const sql of foreignKeys) {
       try {
         await prisma.$executeRawUnsafe(sql)
-      } catch (error: any) {
+      } catch (error: unknown) {
         // 제약 조건이 이미 존재하는 경우 무시
-        if (!error.message?.includes('already exists')) {
-          console.warn('Foreign key creation warning:', error.message)
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        if (!errorMessage.includes('already exists')) {
+          console.warn('Foreign key creation warning:', errorMessage)
         }
       }
     }

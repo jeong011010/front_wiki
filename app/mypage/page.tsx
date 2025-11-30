@@ -242,7 +242,9 @@ export default function MyPage() {
                     article={{
                       id: userCard.article.id,
                       title: userCard.article.title,
-                      titleWithLinks: (userCard.article as any).titleWithLinks, // API에서 받은 링크 포함 제목
+                      titleWithLinks: 'titleWithLinks' in userCard.article 
+                        ? (userCard.article as { titleWithLinks?: string }).titleWithLinks 
+                        : undefined, // API에서 받은 링크 포함 제목
                       slug: userCard.article.slug,
                       category: userCard.article.category?.name || null,
                       categorySlug: userCard.article.category?.slug || null,

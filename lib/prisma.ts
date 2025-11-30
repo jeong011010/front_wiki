@@ -40,9 +40,10 @@ export async function withRetry<T>(
       lastError = error instanceof Error ? error : new Error(String(error))
       
       // P1001 (Can't reach database server) 또는 P2021 (Table does not exist) 에러인 경우 재시도
+      const prismaError = error as { code?: string }
       if (
-        (error as any)?.code === 'P1001' ||
-        (error as any)?.code === 'P2021'
+        prismaError?.code === 'P1001' ||
+        prismaError?.code === 'P2021'
       ) {
         if (i < maxRetries - 1) {
           console.warn(`Database connection failed, retrying... (${i + 1}/${maxRetries})`)

@@ -44,7 +44,7 @@ export async function obtainCardByAuthor(userId: string, articleId: string) {
 export async function addPoints(
   userId: string,
   points: number,
-  reason: string
+  _reason: string // 사용되지 않지만 로깅 목적으로 유지
 ) {
   try {
     // 사용자 포인트 레코드 가져오기 또는 생성
@@ -75,7 +75,7 @@ export async function addPoints(
 /**
  * 포인트 사용 (카드 뽑기 등)
  */
-export async function usePoints(userId: string, points: number) {
+export async function deductPoints(userId: string, points: number) {
   try {
     const userPoint = await prisma.userPoint.findUnique({
       where: { userId },
@@ -113,7 +113,7 @@ export async function drawRandomCard(
     const cost = drawType === 'premium' ? 500 : 100
 
     // 포인트 차감
-    await usePoints(userId, cost)
+    await deductPoints(userId, cost)
 
     // 랜덤으로 공개된 글 중 하나 선택 (이미 보유한 카드 제외)
     const userCards = await prisma.userCard.findMany({
