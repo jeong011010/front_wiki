@@ -19,6 +19,17 @@ if (process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL) {
   console.warn('⚠️  DATABASE_URL is not set! Please check your .env or .env.local file.')
 }
 
+// Supabase 연결 문제 진단을 위한 로깅
+if (process.env.NODE_ENV === 'development' && process.env.DATABASE_URL) {
+  const dbUrl = process.env.DATABASE_URL
+  if (dbUrl.includes('supabase.com')) {
+    const hostMatch = dbUrl.match(/@([^:]+):(\d+)/)
+    if (hostMatch) {
+      console.log(`📊 Database: Supabase (${hostMatch[1]}:${hostMatch[2]})`)
+    }
+  }
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
@@ -53,10 +64,21 @@ export async function withRetry<T>(
       return await fn()
     } catch (error) {
       // 개발 환경에서는 상세 에러 정보 로깅
-      console.error('Prisma query error (development):', error)
+      console.error('❌ Prisma query error (development):', error)
       if (error instanceof Error) {
         console.error('Error message:', error.message)
         console.error('Error stack:', error.stack)
+        
+        // Supabase 연결 문제인 경우 추가 정보 제공
+        if (error.message.includes("Can't reach database server")) {
+          console.error('')
+          console.error('🔍 Supabase 연결 문제 진단:')
+          console.error('  1. Supabase 프로젝트가 일시 중지되었을 수 있습니다 (무료 플랜)')
+          console.error('  2. Supabase 대시보드에서 프로젝트 상태를 확인하세요')
+          console.error('  3. 네트워크/방화벽 문제일 수 있습니다')
+          console.error('  4. 배포 환경에서는 캐시로 인해 정상 작동할 수 있습니다')
+          console.error('')
+        }
       }
       throw error
     }

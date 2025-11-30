@@ -50,6 +50,9 @@ export async function GET(request: NextRequest) {
         console.log('[전체글 API] 캐시에서 반환:', cached.length, '개')
         return NextResponse.json<ArticlesListResponse>(cached)
       }
+      console.log('[전체글 API] 캐시 미스 - DB에서 조회')
+    } else if (cacheKey) {
+      console.log('[전체글 API] 캐시 사용 안 함 (개발 환경 또는 캐시 미설정)')
     }
     
     // 비회원 또는 일반 회원은 공개된 글만, 관리자는 모든 글
