@@ -17,6 +17,8 @@ interface Article {
   updatedAt: string
   preview?: string
   tier?: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' // 계산된 티어 (선택사항)
+  views?: number // 조회수
+  likes?: number // 좋아요 수
   author?: {
     name: string
     email: string

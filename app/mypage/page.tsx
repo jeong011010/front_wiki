@@ -46,6 +46,12 @@ export default function MyPage() {
   const [drawing, setDrawing] = useState(false)
   const [drawResult, setDrawResult] = useState<{ success: boolean; message: string } | null>(null)
   const [user, setUser] = useState<User | null>(null)
+  const [filterBy, setFilterBy] = useState<'all' | 'author' | 'draw' | 'contribution'>('all')
+  
+  // 필터링된 카드
+  const filteredCards = filterBy === 'all' 
+    ? cards 
+    : cards.filter(card => card.obtainedBy === filterBy)
 
   useEffect(() => {
     const init = async () => {
@@ -226,50 +232,144 @@ export default function MyPage() {
 
         {/* 보유 카드 목록 */}
         <div>
-          <h2 className="text-2xl font-bold text-text-primary mb-4">보유 카드</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-text-primary mb-1">보유 카드</h2>
+              <p className="text-sm text-text-secondary">총 {cards.length}장의 카드를 보유하고 있습니다</p>
+            </div>
+            {/* 필터 버튼 */}
+            {cards.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setFilterBy('all')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    filterBy === 'all'
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-surface border border-border text-text-secondary hover:bg-surface-hover'
+                  }`}
+                >
+                  전체
+                </button>
+                <button
+                  onClick={() => setFilterBy('author')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    filterBy === 'author'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-surface border border-border text-text-secondary hover:bg-surface-hover'
+                  }`}
+                >
+                  작성 ({cards.filter(c => c.obtainedBy === 'author').length})
+                </button>
+                <button
+                  onClick={() => setFilterBy('draw')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    filterBy === 'draw'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-surface border border-border text-text-secondary hover:bg-surface-hover'
+                  }`}
+                >
+                  뽑기 ({cards.filter(c => c.obtainedBy === 'draw').length})
+                </button>
+                <button
+                  onClick={() => setFilterBy('contribution')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    filterBy === 'contribution'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-surface border border-border text-text-secondary hover:bg-surface-hover'
+                  }`}
+                >
+                  기여 ({cards.filter(c => c.obtainedBy === 'contribution').length})
+                </button>
+              </div>
+            )}
+          </div>
+          
           {loading ? (
-            <div className="text-text-secondary">로딩 중...</div>
-          ) : cards.length === 0 ? (
+            <div className="text-text-secondary text-center py-12">로딩 중...</div>
+          ) : filteredCards.length === 0 ? (
             <div className="bg-surface border border-border rounded-lg p-12 text-center">
-              <p className="text-text-secondary mb-4">아직 보유한 카드가 없습니다.</p>
-              <p className="text-sm text-text-tertiary">글을 작성하거나 카드를 뽑아보세요!</p>
+              {cards.length === 0 ? (
+                <>
+                  <div className="text-6xl mb-4">🎴</div>
+                  <p className="text-text-secondary mb-2 text-lg font-semibold">아직 보유한 카드가 없습니다</p>
+                  <p className="text-sm text-text-tertiary mb-6">글을 작성하거나 카드를 뽑아보세요!</p>
+                  <div className="flex gap-2 justify-center">
+                    <Link
+                      href="/articles/new"
+                      className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm font-medium"
+                    >
+                      글 작성하기
+                    </Link>
+                    <button
+                      onClick={() => handleDraw('normal')}
+                      disabled={stats.points < 100}
+                      className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      카드 뽑기
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl mb-3">🔍</div>
+                  <p className="text-text-secondary">선택한 필터에 해당하는 카드가 없습니다</p>
+                </>
+              )}
             </div>
           ) : (
-            <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
-              {cards.map((userCard) => (
-                <div key={userCard.id} className="relative">
-                  <ArticleCard
-                    article={{
-                      id: userCard.article.id,
-                      title: userCard.article.title,
-                      titleWithLinks: 'titleWithLinks' in userCard.article 
-                        ? (userCard.article as { titleWithLinks?: string }).titleWithLinks 
-                        : undefined, // API에서 받은 링크 포함 제목
-                      slug: userCard.article.slug,
-                      category: userCard.article.category?.name || null,
-                      categorySlug: userCard.article.category?.slug || null,
-                      createdAt: userCard.article.createdAt,
-                      updatedAt: userCard.article.createdAt,
-                      tier: 'tier' in userCard.article 
-                        ? (userCard.article as { tier?: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' }).tier 
-                        : undefined, // API에서 받은 티어
-                      author: userCard.article.author ? {
-                        name: userCard.article.author.name,
-                        email: '',
-                      } : null,
-                    }}
-                  />
-                  {/* 획득 방법 배지 */}
-                  <div className="absolute top-2 right-2 z-50">
-                    <span className={`px-2 py-1 text-xs font-bold rounded-full shadow-md ${
-                      userCard.obtainedBy === 'author'
-                        ? 'bg-blue-500 text-white'
-                        : userCard.obtainedBy === 'draw'
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-green-500 text-white'
-                    }`}>
-                      {userCard.obtainedBy === 'author' ? '작성' : userCard.obtainedBy === 'draw' ? '뽑기' : '기여'}
-                    </span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {filteredCards.map((userCard) => (
+                <div key={userCard.id} className="relative group">
+                  <div className="relative transform transition-transform hover:scale-105 duration-200">
+                    <ArticleCard
+                      article={{
+                        id: userCard.article.id,
+                        title: userCard.article.title,
+                        titleWithLinks: 'titleWithLinks' in userCard.article 
+                          ? (userCard.article as { titleWithLinks?: string }).titleWithLinks 
+                          : undefined,
+                        slug: userCard.article.slug,
+                        category: userCard.article.category?.name || null,
+                        categorySlug: userCard.article.category?.slug || null,
+                        createdAt: userCard.article.createdAt,
+                        updatedAt: userCard.article.createdAt,
+                        tier: 'tier' in userCard.article 
+                          ? (userCard.article as { tier?: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' }).tier 
+                          : undefined,
+                        views: 'views' in userCard.article 
+                          ? (userCard.article as { views?: number }).views || 0
+                          : 0,
+                        likes: 'likes' in userCard.article 
+                          ? (userCard.article as { likes?: number }).likes || 0
+                          : 0,
+                        author: userCard.article.author ? {
+                          name: userCard.article.author.name,
+                          email: '',
+                        } : null,
+                      }}
+                    />
+                    {/* 획득 방법 배지 - 더 세련되게 */}
+                    <div className="absolute top-2 right-2 z-50 opacity-90 group-hover:opacity-100 transition-opacity">
+                      <div className={`px-2 py-1 text-[10px] font-bold rounded-lg shadow-lg backdrop-blur-sm ${
+                        userCard.obtainedBy === 'author'
+                          ? 'bg-blue-500/90 text-white'
+                          : userCard.obtainedBy === 'draw'
+                          ? 'bg-purple-500/90 text-white'
+                          : 'bg-green-500/90 text-white'
+                      }`}>
+                        {userCard.obtainedBy === 'author' ? '✍️ 작성' : userCard.obtainedBy === 'draw' ? '🎲 뽑기' : '🤝 기여'}
+                      </div>
+                    </div>
+                    {/* 획득 날짜 툴팁 */}
+                    <div className="absolute bottom-2 left-2 z-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="bg-black/80 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">
+                        {new Date(userCard.obtainedAt).toLocaleDateString('ko-KR', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}

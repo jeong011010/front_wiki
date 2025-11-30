@@ -1,12 +1,15 @@
 import ArticleContentWithPreview from '@/components/ArticleContentWithPreview'
 import Header from '@/components/Header'
 import ArticleActions from '@/components/ArticleActions'
+import ArticleContributeButton from '@/components/ArticleContributeButton'
+import ArticleLikeView from '@/components/ArticleLikeView'
 import RelationTypeSelector from '@/components/RelationTypeSelector'
 import TableOfContents from '@/components/TableOfContents'
+import ArticleComments from '@/components/ArticleComments'
 import { getSessionUser } from '@/lib/auth'
 import { detectKeywords, insertLinksInTitle } from '@/lib/link-detector'
 import { addHeadingIds } from '@/lib/markdown-utils'
-import { prisma } from '@/lib/prisma'
+import { prisma, withRetry } from '@/lib/prisma'
 import type { ArticleDetail, ArticleLinkWithFromArticle, ArticleLinkWithToArticle, RelationType } from '@/types'
 import type { Article } from '@prisma/client'
 import { marked } from 'marked'
@@ -23,9 +26,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params
   const decodedSlug = slug.includes('%') ? decodeURIComponent(slug) : slug
   
-  const article = await prisma.article.findUnique({
+  const article = await withRetry(() => prisma.article.findUnique({
     where: { slug: decodedSlug },
-  }) as (Article & { author?: { name: string } | null; status: string }) | null
+  })) as (Article & { author?: { name: string } | null; status: string }) | null
 
   if (!article || article.status !== 'published') {
     return {
@@ -78,9 +81,19 @@ export default async function ArticlePage({ params }: PageProps) {
   
   const user = await getSessionUser()
   
-  const article = await prisma.article.findUnique({
+  const article = await withRetry(() => prisma.article.findUnique({
     where: { slug: decodedSlug },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      content: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      authorId: true,
+      views: true,
+      likes: true,
       author: {
         select: {
           id: true,
@@ -111,7 +124,7 @@ export default async function ArticlePage({ params }: PageProps) {
         },
       },
     },
-  })
+  }))
   
   if (!article) {
     notFound()
@@ -235,13 +248,30 @@ export default async function ArticlePage({ params }: PageProps) {
                   </span>
                 )}
               </div>
+              {/* 조회수 및 좋아요 */}
+              <div className="mt-3">
+                <ArticleLikeView 
+                  slug={articleDetail.slug}
+                  initialViews={article.views}
+                  initialLikes={article.likes}
+                />
+              </div>
             </div>
-            {/* 수정/삭제 버튼 (작성자 또는 관리자만) - 클라이언트 컴포넌트로 분리 */}
-            <ArticleActions 
-              articleId={articleDetail.id} 
-              articleSlug={articleDetail.slug}
-              authorId={articleDetail.authorId}
-            />
+            {/* 액션 버튼들 */}
+            <div className="flex gap-2 flex-shrink-0 flex-col sm:flex-row">
+              {/* 기여 버튼 (모든 로그인 사용자) */}
+              <ArticleContributeButton
+                articleId={articleDetail.id}
+                articleSlug={articleDetail.slug}
+                articleContent={article.content}
+              />
+              {/* 수정/삭제 버튼 (작성자 또는 관리자만) */}
+              <ArticleActions 
+                articleId={articleDetail.id} 
+                articleSlug={articleDetail.slug}
+                authorId={articleDetail.authorId}
+              />
+            </div>
           </div>
 
           <ArticleContentWithPreview htmlContent={htmlContent} />
@@ -339,6 +369,13 @@ export default async function ArticlePage({ params }: PageProps) {
               </div>
             )}
           </div>
+
+          {/* 댓글 섹션 */}
+          <ArticleComments 
+            articleSlug={decodedSlug}
+            currentUserId={user?.id}
+            currentUserRole={user?.role}
+          />
         </div>
       </main>
     </div>

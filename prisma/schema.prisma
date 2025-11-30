@@ -8,17 +8,21 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  password      String
-  name          String
-  role          String         @default("user")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  articles      Article[]
-  refreshTokens RefreshToken[]
-  userCards     UserCard[]
-  userPoints    UserPoint[]
+  id                    String                @id @default(cuid())
+  email                 String                @unique
+  password              String
+  name                  String
+  role                  String                @default("user")
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  articles              Article[]
+  refreshTokens         RefreshToken[]
+  userCards             UserCard[]
+  userPoints            UserPoint[]
+  comments              Comment[]
+  likes                 Like[]
+  contributions         ArticleContribution[] @relation("Contributor")
+  reviewedContributions ArticleContribution[] @relation("Reviewer")
 
   @@index([email])
 }
@@ -41,26 +45,37 @@ model Category {
 }
 
 model Article {
-  id            String        @id @default(cuid())
-  title         String        @unique
-  slug          String        @unique
-  content       String
-  status        String        @default("published")
-  categoryId    String?
-  authorId      String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  category      Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  incomingLinks ArticleLink[] @relation("ToArticle")
-  outgoingLinks ArticleLink[] @relation("FromArticle")
-  userCards     UserCard[] // 이 글을 카드로 보유한 사용자들
+  id              String                @id @default(cuid())
+  title           String                @unique
+  slug            String                @unique
+  content         String
+  status          String                @default("published")
+  categoryId      String?
+  authorId        String?
+  views           Int                   @default(0) // 조회수
+  likes           Int                   @default(0) // 추천 수 (캐시된 값)
+  commentsCount   Int                   @default(0) // 댓글 수 (캐시된 값)
+  referencedCount Int                   @default(0) // 이 글을 참조하는 글 개수 (캐시된 값)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  category        Category?             @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author          User?                 @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  incomingLinks   ArticleLink[]         @relation("ToArticle")
+  outgoingLinks   ArticleLink[]         @relation("FromArticle")
+  userCards       UserCard[] // 이 글을 카드로 보유한 사용자들
+  comments        Comment[]
+  likesRelation   Like[]                @relation("ArticleLikes")
+  contributions   ArticleContribution[]
 
   @@index([slug])
   @@index([title])
   @@index([status])
   @@index([authorId])
   @@index([categoryId])
+  @@index([views])
+  @@index([likes])
+  @@index([commentsCount])
+  @@index([referencedCount])
 }
 
 model ArticleLink {
@@ -95,19 +110,21 @@ model RefreshToken {
 
 // 사용자 보유 카드
 model UserCard {
-  id         String   @id @default(cuid())
-  userId     String
-  articleId  String // 카드로 변환된 글 ID
-  obtainedAt DateTime @default(now())
-  obtainedBy String   @default("author") // 획득 방법: "author" (작성), "contribution" (기여), "draw" (뽑기)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  id            String   @id @default(cuid())
+  userId        String
+  articleId     String // 카드로 변환된 글 ID
+  obtainedAt    DateTime @default(now())
+  obtainedBy    String   @default("author") // 획득 방법: "author" (작성), "contribution" (기여), "draw" (뽑기)
+  isContributor Boolean  @default(false) // 기여자로 획득한 카드인지 여부
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article       Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, articleId])
   @@index([userId])
   @@index([articleId])
   @@index([obtainedAt])
   @@index([obtainedBy])
+  @@index([isContributor])
 }
 
 // 사용자 포인트/기여도
@@ -135,5 +152,77 @@ model CardDraw {
 
   @@index([userId])
   @@index([articleId])
+  @@index([createdAt])
+}
+
+// 댓글
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  articleId String
+  authorId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // 소프트 삭제
+  article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+// 추천
+model Like {
+  id        String   @id @default(cuid())
+  articleId String
+  userId    String
+  createdAt DateTime @default(now())
+  article   Article  @relation("ArticleLikes", fields: [articleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, userId])
+  @@index([articleId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// 글 기여
+enum ContributionType {
+  CONTENT_UPDATE // 내용 수정
+  CONTENT_ADDITION // 내용 추가
+  COMMENT // 첨언 (코멘트)
+  CORRECTION // 오류 수정
+  IMPROVEMENT // 개선
+  OTHER // 기타
+}
+
+enum ContributionStatus {
+  PENDING // 검토 대기
+  APPROVED // 승인됨
+  REJECTED // 거부됨
+}
+
+model ArticleContribution {
+  id            String             @id @default(cuid())
+  articleId     String
+  contributorId String
+  type          ContributionType
+  content       String // 변경된 마크다운 또는 변경 사항 설명
+  status        ContributionStatus @default(PENDING)
+  reviewerId    String?
+  reviewedAt    DateTime?
+  reviewComment String? // 검토 코멘트
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  article       Article            @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  contributor   User               @relation("Contributor", fields: [contributorId], references: [id], onDelete: Cascade)
+  reviewer      User?              @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([articleId])
+  @@index([contributorId])
+  @@index([status])
+  @@index([reviewerId])
   @@index([createdAt])
 }

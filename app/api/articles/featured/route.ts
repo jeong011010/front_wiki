@@ -46,7 +46,17 @@ export async function GET(request: NextRequest) {
       // 모든 글을 가져와서 incomingLinks 개수로 정렬
       const allArticles = await withRetry(() => prisma.article.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          createdAt: true,
+          updatedAt: true,
+          content: true,
+          views: true,
+          likes: true,
+          commentsCount: true,
+          referencedCount: true,
           category: {
             select: {
               id: true,
@@ -71,13 +81,46 @@ export async function GET(request: NextRequest) {
         },
       }))
       
-      // incomingLinks 개수로 정렬하고 limit 적용
+      // 인기 점수 계산 함수 (티어 계산 로직과 유사)
+      const calculatePopularityScore = (article: typeof allArticles[0]) => {
+        const incomingLinksCount = article._count.incomingLinks || 0
+        const outgoingLinksCount = article._count.outgoingLinks || 0
+        const userCardsCount = article._count.userCards || 0
+        const viewCount = article.views || 0
+        const likes = article.likes || 0
+        const comments = article.commentsCount || 0
+        const referencedCount = article.referencedCount || 0
+        
+        let score = 0
+        score += incomingLinksCount * 3
+        score += userCardsCount * 4
+        if (viewCount > 0) {
+          score += Math.log10(viewCount + 1) * 10
+        }
+        score += likes * 3
+        score += comments * 2
+        score += referencedCount * 2
+        if (article.createdAt) {
+          const createdDate = typeof article.createdAt === 'string' ? new Date(article.createdAt) : article.createdAt
+          const daysSinceCreation = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
+          if (daysSinceCreation <= 7) {
+            score += 5
+          } else if (daysSinceCreation <= 30) {
+            score += 2
+          }
+        }
+        score += outgoingLinksCount * 0.5
+        
+        return score
+      }
+      
+      // 인기 점수로 정렬하고 limit 적용
       articles = allArticles
         .sort((a, b) => {
-          const countA = a._count.incomingLinks
-          const countB = b._count.incomingLinks
-          if (countA !== countB) {
-            return countB - countA
+          const scoreA = calculatePopularityScore(a)
+          const scoreB = calculatePopularityScore(b)
+          if (scoreA !== scoreB) {
+            return scoreB - scoreA
           }
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         })
@@ -91,6 +134,10 @@ export async function GET(request: NextRequest) {
           createdAt: article.createdAt,
           updatedAt: article.updatedAt,
           content: article.content,
+          views: article.views || 0,
+          likes: article.likes || 0,
+          commentsCount: article.commentsCount || 0,
+          referencedCount: article.referencedCount || 0,
           _count: article._count, // 통계 정보 포함
           author: article.author ? {
             name: article.author.name,
@@ -103,7 +150,17 @@ export async function GET(request: NextRequest) {
         where,
         orderBy: { createdAt: 'desc' },
         take: limit,
-        include: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          createdAt: true,
+          updatedAt: true,
+          content: true,
+          views: true,
+          likes: true,
+          commentsCount: true,
+          referencedCount: true,
           category: {
             select: {
               id: true,
@@ -138,6 +195,10 @@ export async function GET(request: NextRequest) {
         createdAt: article.createdAt,
         updatedAt: article.updatedAt,
         content: article.content,
+        views: article.views || 0,
+        likes: article.likes || 0,
+        commentsCount: article.commentsCount || 0,
+        referencedCount: article.referencedCount || 0,
         _count: article._count,
         author: article.author ? {
           name: article.author.name,
@@ -157,11 +218,15 @@ export async function GET(request: NextRequest) {
       // 제목에 링크 삽입 (자기 자신 제외) - 에러 발생 시 원본 제목 사용
       const titleWithLinks = await insertLinksInTitle(article.title, article.id)
       
-      // 티어 계산
+      // 티어 계산 (새 필드 포함)
       const tier = calculateTier({
         incomingLinksCount: article._count?.incomingLinks || 0,
         outgoingLinksCount: article._count?.outgoingLinks || 0,
         userCardsCount: article._count?.userCards || 0,
+        views: article.views || 0,
+        likes: article.likes || 0,
+        commentsCount: article.commentsCount || 0,
+        referencedCount: article.referencedCount || 0,
         createdAt: article.createdAt,
       })
       
@@ -176,6 +241,8 @@ export async function GET(request: NextRequest) {
         updatedAt: article.updatedAt,
         preview,
         tier, // 계산된 티어
+        views: article.views || 0,
+        likes: article.likes || 0,
         author: article.author,
       }
     }))

@@ -202,6 +202,17 @@ export async function apiRequestJson<T>(
     const error = await response.json().catch(() => ({
       error: `HTTP ${response.status}: ${response.statusText}`,
     }))
+    
+    // 401 에러인 경우 더 명확한 메시지
+    if (response.status === 401) {
+      const token = getAccessToken()
+      if (!token) {
+        throw new Error('로그인이 필요합니다. 페이지를 새로고침하거나 다시 로그인해주세요.')
+      }
+      // 토큰이 있지만 만료된 경우
+      throw new Error('로그인 세션이 만료되었습니다. 페이지를 새로고침하거나 다시 로그인해주세요.')
+    }
+    
     const errorMessage = error.error || error.message || error.details || `API request failed (${response.status})`
     throw new Error(errorMessage)
   }
