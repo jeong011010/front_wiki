@@ -258,45 +258,21 @@ export default function ArticleCard({ article }: ArticleCardProps) {
     }
   }
 
-  // 모바일: 터치 드래그 중
+  // 모바일: 터치 드래그 중 (전역 이벤트에서 처리하므로 여기서는 스크롤만 체크)
   const handleTouchMove = (e: React.TouchEvent<HTMLAnchorElement>) => {
-    if (!isDragging || !dragStartPos.current || !cardRef.current || !dragStartMousePos.current) return
+    if (!isDragging || !dragStartMousePos.current) return
     
     const touch = e.touches[0]
-    const card = cardRef.current
-    const rect = card.getBoundingClientRect()
-    const centerX = rect.left + rect.width / 2
-    const centerY = rect.top + rect.height / 2
-    
-    const touchX = touch.clientX - centerX
-    const touchY = touch.clientY - centerY
-    
-    // 드래그 거리 및 방향 계산
     const deltaX = touch.clientX - dragStartMousePos.current.x
     const deltaY = touch.clientY - dragStartMousePos.current.y
-    const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
     
     // 수평 방향으로 큰 움직임이면 스크롤 모드로 전환 (20px 이상)
     if (Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
       setIsScrolling(true)
       setRotateX(0)
       setRotateY(0)
-      return // 스크롤 모드에서는 카드 회전 비활성화
-    }
-    
-    // 작은 움직임이거나 수직 방향이면 카드 회전
-    if (!isScrolling && dragDistance > 5) {
-      // 회전 각도 계산 (최대 5도로 제한, 드래그 거리에 비례)
-      const maxRotate = 5
-      const maxDragDistance = Math.max(rect.width, rect.height)
-      const normalizedDistance = Math.min(dragDistance / maxDragDistance, 1)
-      const rotationIntensity = Math.min(normalizedDistance * 0.7, 1)
-      
-      const rotateXValue = Math.max(-maxRotate, Math.min(maxRotate, (touchY / (rect.height / 2)) * maxRotate * -1 * rotationIntensity))
-      const rotateYValue = Math.max(-maxRotate, Math.min(maxRotate, (touchX / (rect.width / 2)) * maxRotate * rotationIntensity))
-      
-      setRotateX(rotateXValue)
-      setRotateY(rotateYValue)
+    } else {
+      setIsScrolling(false)
     }
   }
 
@@ -325,36 +301,46 @@ export default function ArticleCard({ article }: ArticleCardProps) {
       
       const touch = e.touches[0]
       
-      // 드래그 거리 계산 (5px 이상 움직이면 드래그로 간주)
-      const dragDistance = Math.sqrt(
-        Math.pow(touch.clientX - dragStartMousePos.current.x, 2) + 
-        Math.pow(touch.clientY - dragStartMousePos.current.y, 2)
-      )
+      // 드래그 거리 및 방향 계산
+      const deltaX = touch.clientX - dragStartMousePos.current.x
+      const deltaY = touch.clientY - dragStartMousePos.current.y
+      const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
       
-      if (dragDistance > 5) {
-        setHasDragged(true) // 실제 드래그 발생
-        e.preventDefault() // 스크롤 방지
+      // 수평 스크롤이 우세하고 일정 거리 이상 움직이면 스크롤 모드로 전환
+      if (Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+        setIsScrolling(true)
+        setRotateX(0)
+        setRotateY(0)
+        return // 스크롤 중이면 카드 회전 방지
+      } else {
+        setIsScrolling(false)
       }
       
-      const card = cardRef.current
-      const rect = card.getBoundingClientRect()
-      const centerX = rect.left + rect.width / 2
-      const centerY = rect.top + rect.height / 2
-      
-      const touchX = touch.clientX - centerX
-      const touchY = touch.clientY - centerY
-      
-      // 회전 각도 계산 (최대 5도로 제한, 드래그 거리에 비례)
-      const maxRotate = 15
-      const maxDragDistance = Math.max(rect.width, rect.height)
-      const normalizedDistance = Math.min(dragDistance / maxDragDistance, 1)
-      const rotationIntensity = Math.min(normalizedDistance * 0.7, 1)
-      
-      const rotateXValue = Math.max(-maxRotate, Math.min(maxRotate, (touchY / (rect.height / 2)) * maxRotate * -1 * rotationIntensity))
-      const rotateYValue = Math.max(-maxRotate, Math.min(maxRotate, (touchX / (rect.width / 2)) * maxRotate * rotationIntensity))
-      
-      setRotateX(rotateXValue)
-      setRotateY(rotateYValue)
+      // 작은 움직임이거나 수직 방향이면 카드 회전
+      if (!isScrolling && dragDistance > 5) {
+        setHasDragged(true) // 실제 드래그 발생
+        e.preventDefault() // 스크롤 방지
+        
+        const card = cardRef.current
+        const rect = card.getBoundingClientRect()
+        const centerX = rect.left + rect.width / 2
+        const centerY = rect.top + rect.height / 2
+        
+        const touchX = touch.clientX - centerX
+        const touchY = touch.clientY - centerY
+        
+        // 회전 각도 계산 (최대 5도로 제한, 드래그 거리에 비례)
+        const maxRotate = 5
+        const maxDragDistance = Math.max(rect.width, rect.height)
+        const normalizedDistance = Math.min(dragDistance / maxDragDistance, 1)
+        const rotationIntensity = Math.min(normalizedDistance * 0.7, 1)
+        
+        const rotateXValue = Math.max(-maxRotate, Math.min(maxRotate, (touchY / (rect.height / 2)) * maxRotate * -1 * rotationIntensity))
+        const rotateYValue = Math.max(-maxRotate, Math.min(maxRotate, (touchX / (rect.width / 2)) * maxRotate * rotationIntensity))
+        
+        setRotateX(rotateXValue)
+        setRotateY(rotateYValue)
+      }
     }
 
     const handleGlobalTouchEnd = () => {
@@ -371,12 +357,12 @@ export default function ArticleCard({ article }: ArticleCardProps) {
     document.addEventListener('touchend', handleGlobalTouchEnd)
     document.addEventListener('touchcancel', handleGlobalTouchEnd)
 
-    return () => {
-      document.removeEventListener('touchmove', handleGlobalTouchMove)
-      document.removeEventListener('touchend', handleGlobalTouchEnd)
-      document.removeEventListener('touchcancel', handleGlobalTouchEnd)
-    }
-  }, [isDragging, isMobile])
+      return () => {
+        document.removeEventListener('touchmove', handleGlobalTouchMove)
+        document.removeEventListener('touchend', handleGlobalTouchEnd)
+        document.removeEventListener('touchcancel', handleGlobalTouchEnd)
+      }
+    }, [isDragging, isMobile, isScrolling])
 
   // 전역 마우스 이벤트 처리 (카드 밖에서도 드래그 유지 및 종료)
   useEffect(() => {
@@ -502,10 +488,10 @@ export default function ArticleCard({ article }: ArticleCardProps) {
         perspective: '1000px',
         transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${getScale()})`,
         transition: isDragging ? 'box-shadow 0.2s ease-out' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        boxShadow: getBoxShadow(),
-        width: '240px',
-        height: '320px',
-        cursor: isDragging ? 'grabbing' : 'grab',
+            boxShadow: getBoxShadow(),
+            width: '200px',
+            height: '360px',
+            cursor: isDragging ? 'grabbing' : 'grab',
         willChange: 'transform',
         WebkitFontSmoothing: 'antialiased',
         MozOsxFontSmoothing: 'grayscale',
@@ -725,12 +711,13 @@ export default function ArticleCard({ article }: ArticleCardProps) {
       
       {/* 하단: 작성자 및 날짜 영역 */}
       <div 
-        className="relative z-10 px-4 pb-4 pt-3 bg-gradient-to-b from-gray-50 to-white"
+        className="relative z-10 px-4 pb-5 pt-3 bg-gradient-to-b from-gray-50 to-white"
         style={{
           transform: 'translateZ(0)',
           WebkitFontSmoothing: 'antialiased',
           MozOsxFontSmoothing: 'grayscale',
           textRendering: 'optimizeLegibility',
+          minHeight: '80px', // 최소 높이 보장
         }}
       >
         {/* 작성자 정보 */}
