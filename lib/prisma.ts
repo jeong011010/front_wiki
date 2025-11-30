@@ -14,6 +14,11 @@ if (process.env.DATABASE_URL?.startsWith('file:./')) {
   process.env.DATABASE_URL = `file:${absolutePath}`
 }
 
+// DATABASE_URL 확인 및 로깅 (개발 환경에서만)
+if (process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL) {
+  console.warn('⚠️  DATABASE_URL is not set! Please check your .env or .env.local file.')
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
