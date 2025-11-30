@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { insertLinksInTitle } from '@/lib/link-detector'
+import { calculateTier } from '@/lib/tier-calculator'
 
 /**
  * GET: 보유 카드 목록 조회
@@ -37,6 +38,13 @@ export async function GET(request: NextRequest) {
                   email: true,
                 },
               },
+              _count: {
+                select: {
+                  incomingLinks: true,
+                  outgoingLinks: true,
+                  userCards: true,
+                },
+              },
             },
           },
         },
@@ -62,6 +70,14 @@ export async function GET(request: NextRequest) {
         // 에러 발생 시 원본 제목 사용
       }
       
+      // 티어 계산
+      const tier = calculateTier({
+        incomingLinksCount: userCard.article._count?.incomingLinks || 0,
+        outgoingLinksCount: userCard.article._count?.outgoingLinks || 0,
+        userCardsCount: userCard.article._count?.userCards || 0,
+        createdAt: userCard.article.createdAt,
+      })
+      
       return {
         id: userCard.id,
         article: {
@@ -83,6 +99,7 @@ export async function GET(request: NextRequest) {
               }
             : null,
           createdAt: userCard.article.createdAt,
+          tier, // 계산된 티어
         },
         obtainedAt: userCard.obtainedAt,
         obtainedBy: userCard.obtainedBy,

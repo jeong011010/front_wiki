@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { authenticateToken } from '@/lib/auth-middleware'
 import { getCache, setCache, createVersionedCacheKey, isCacheAvailable } from '@/lib/cache'
 import { insertLinksInTitle } from '@/lib/link-detector'
+import { calculateTier } from '@/lib/tier-calculator'
 import type { ArticlesListResponse, ApiErrorResponse } from '@/types'
 
 /**
@@ -64,6 +65,8 @@ export async function GET(request: NextRequest) {
           _count: {
             select: {
               incomingLinks: true,
+              outgoingLinks: true,
+              userCards: true,
             },
           },
         },
@@ -89,6 +92,7 @@ export async function GET(request: NextRequest) {
           createdAt: article.createdAt,
           updatedAt: article.updatedAt,
           content: article.content,
+          _count: article._count, // 통계 정보 포함
           author: article.author ? {
             name: article.author.name,
             email: article.author.email,
@@ -118,20 +122,36 @@ export async function GET(request: NextRequest) {
         },
       })
       
-      // 필요한 필드만 추출
-      articles = articles.map((article) => ({
-        id: article.id,
-        title: article.title,
-        slug: article.slug,
-        category: article.category ? article.category.name : null,
-        categorySlug: article.category ? article.category.slug : null,
-        createdAt: article.createdAt,
-        updatedAt: article.updatedAt,
-        content: article.content,
-        author: article.author ? {
-          name: article.author.name,
-          email: article.author.email,
-        } : null,
+      // 필요한 필드만 추출 (통계 정보 포함)
+      articles = await Promise.all(articles.map(async (article) => {
+        const counts = await prisma.article.findUnique({
+          where: { id: article.id },
+          select: {
+            _count: {
+              select: {
+                incomingLinks: true,
+                outgoingLinks: true,
+                userCards: true,
+              },
+            },
+          },
+        })
+        
+        return {
+          id: article.id,
+          title: article.title,
+          slug: article.slug,
+          category: article.category ? article.category.name : null,
+          categorySlug: article.category ? article.category.slug : null,
+          createdAt: article.createdAt,
+          updatedAt: article.updatedAt,
+          content: article.content,
+          _count: counts?._count || { incomingLinks: 0, outgoingLinks: 0, userCards: 0 },
+          author: article.author ? {
+            name: article.author.name,
+            email: article.author.email,
+          } : null,
+        }
       }))
     }
     
@@ -152,6 +172,14 @@ export async function GET(request: NextRequest) {
         // 에러 발생 시 원본 제목 사용
       }
       
+      // 티어 계산
+      const tier = calculateTier({
+        incomingLinksCount: article._count?.incomingLinks || 0,
+        outgoingLinksCount: article._count?.outgoingLinks || 0,
+        userCardsCount: article._count?.userCards || 0,
+        createdAt: article.createdAt,
+      })
+      
       return {
         id: article.id,
         title: article.title,
@@ -162,6 +190,7 @@ export async function GET(request: NextRequest) {
         createdAt: article.createdAt,
         updatedAt: article.updatedAt,
         preview,
+        tier, // 계산된 티어
         author: article.author,
       }
     }))

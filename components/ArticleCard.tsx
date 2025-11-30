@@ -16,6 +16,7 @@ interface ArticleCardProps {
     updatedAt: Date | string
     preview?: string
     imageUrl?: string | null // 대표 이미지 URL (선택사항)
+    tier?: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' // 계산된 티어 (선택사항)
     author?: {
       name: string
       email: string
@@ -111,30 +112,38 @@ const tierStyles: Record<string, {
 }
 
 export default function ArticleCard({ article }: ArticleCardProps) {
-  // categorySlug를 사용하여 색상 매칭, 없으면 category로 fallback
-  let categoryKey = article.categorySlug || article.category || ''
+  // 티어 결정: API에서 계산된 tier가 있으면 사용, 없으면 카테고리 기반으로 결정
+  let tier: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' = 'general'
   
-  // categoryKey를 소문자로 변환하여 매칭 (대소문자 구분 없이)
-  if (categoryKey) {
-    categoryKey = categoryKey.toLowerCase()
-  }
-  
-  // 카테고리 이름에서 slug 추출 시도 (한글 이름인 경우)
-  if (!categoryKey && article.category) {
-    const categoryName = article.category.toLowerCase()
-    const nameToSlug: Record<string, string> = {
-      '프론트엔드': 'frontend',
-      '백엔드': 'backend',
-      '클라우드': 'cloud',
-      'devops': 'devops',
-      '일반': 'general',
+  if (article.tier) {
+    // API에서 계산된 티어 사용
+    tier = article.tier
+  } else {
+    // 기존 카테고리 기반 티어 결정 (하위 호환성)
+    let categoryKey = article.categorySlug || article.category || ''
+    
+    // categoryKey를 소문자로 변환하여 매칭 (대소문자 구분 없이)
+    if (categoryKey) {
+      categoryKey = categoryKey.toLowerCase()
     }
-    categoryKey = nameToSlug[categoryName] || categoryName
+    
+    // 카테고리 이름에서 slug 추출 시도 (한글 이름인 경우)
+    if (!categoryKey && article.category) {
+      const categoryName = article.category.toLowerCase()
+      const nameToSlug: Record<string, string> = {
+        '프론트엔드': 'frontend',
+        '백엔드': 'backend',
+        '클라우드': 'cloud',
+        'devops': 'devops',
+        '일반': 'general',
+      }
+      categoryKey = nameToSlug[categoryName] || categoryName
+    }
+    
+    tier = (categoryKey && tierStyles[categoryKey]) ? categoryKey as typeof tier : 'general'
   }
   
-  const tierStyle = categoryKey 
-    ? tierStyles[categoryKey] || tierStyles.general
-    : tierStyles.general
+  const tierStyle = tierStyles[tier] || tierStyles.general
 
   const [rotateX, setRotateX] = useState(0)
   const [rotateY, setRotateY] = useState(0)

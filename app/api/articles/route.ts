@@ -4,6 +4,7 @@ import { incrementCacheVersion } from '@/lib/cache-version'
 import { obtainCardByAuthor } from '@/lib/card-system'
 import { detectKeywords, insertLinksInTitle } from '@/lib/link-detector'
 import { prisma } from '@/lib/prisma'
+import { calculateTier } from '@/lib/tier-calculator'
 import { slugify } from '@/lib/utils'
 import type { ApiErrorResponse, ArticleCreateResponse, ArticlesListResponse } from '@/types'
 import type { Prisma } from '@prisma/client'
@@ -132,6 +133,8 @@ export async function GET(request: NextRequest) {
           _count: {
             select: {
               incomingLinks: true,
+              outgoingLinks: true,
+              userCards: true,
             },
           },
         },
@@ -166,6 +169,14 @@ export async function GET(request: NextRequest) {
           // 에러 발생 시 원본 제목 사용
         }
         
+        // 티어 계산
+        const tier = calculateTier({
+          incomingLinksCount: article._count.incomingLinks,
+          outgoingLinksCount: article._count.outgoingLinks,
+          userCardsCount: article._count.userCards,
+          createdAt: article.createdAt,
+        })
+        
         return {
           id: article.id,
           title: article.title,
@@ -176,6 +187,7 @@ export async function GET(request: NextRequest) {
           createdAt: article.createdAt,
           updatedAt: article.updatedAt,
           preview,
+          tier, // 계산된 티어
           author: article.author ? {
             name: article.author.name,
             email: article.author.email,
@@ -218,6 +230,13 @@ export async function GET(request: NextRequest) {
               email: true,
             },
           },
+          _count: {
+            select: {
+              incomingLinks: true,
+              outgoingLinks: true,
+              userCards: true,
+            },
+          },
         },
         orderBy,
         take: limit,
@@ -241,6 +260,14 @@ export async function GET(request: NextRequest) {
           // 에러 발생 시 원본 제목 사용
         }
         
+        // 티어 계산
+        const tier = calculateTier({
+          incomingLinksCount: article._count.incomingLinks,
+          outgoingLinksCount: article._count.outgoingLinks,
+          userCardsCount: article._count.userCards,
+          createdAt: article.createdAt,
+        })
+        
         return {
           id: article.id,
           title: article.title,
@@ -251,6 +278,7 @@ export async function GET(request: NextRequest) {
           createdAt: article.createdAt,
           updatedAt: article.updatedAt,
           preview,
+          tier, // 계산된 티어
           author: article.author ? {
             name: article.author.name,
             email: article.author.email,

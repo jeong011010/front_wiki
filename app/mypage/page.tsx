@@ -250,6 +250,9 @@ export default function MyPage() {
                       categorySlug: userCard.article.category?.slug || null,
                       createdAt: userCard.article.createdAt,
                       updatedAt: userCard.article.createdAt,
+                      tier: 'tier' in userCard.article 
+                        ? (userCard.article as { tier?: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' }).tier 
+                        : undefined, // API에서 받은 티어
                       author: userCard.article.author ? {
                         name: userCard.article.author.name,
                         email: '',
