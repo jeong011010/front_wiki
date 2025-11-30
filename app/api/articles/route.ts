@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     if (sort === 'popular') {
       // 인기순: incomingLinks 개수가 많은 순
       // 모든 글을 가져와서 incomingLinks 개수로 정렬
-      const allArticles = await prisma.article.findMany({
+      const allArticles = await withRetry(() => prisma.article.findMany({
         where,
         include: {
           category: {
