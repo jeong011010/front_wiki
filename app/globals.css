@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* 카드 빛 반사 애니메이션 */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 @theme {
   /* Primary Colors - 메인 색상 (점점 옅어지는 4단계) */
   --color-primary-900: #1a1a2e;      /* 가장 진한 primary */

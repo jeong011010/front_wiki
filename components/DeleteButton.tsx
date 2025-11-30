@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button, toast } from '@/components/ui'
+import { apiDelete } from '@/lib/http'
 import type { DeleteButtonProps } from '@/types'
 
 export default function DeleteButton({ articleId, articleSlug }: DeleteButtonProps) {
@@ -19,13 +20,7 @@ export default function DeleteButton({ articleId, articleSlug }: DeleteButtonPro
 
     setIsDeleting(true)
     try {
-      const response = await fetch(`/api/articles/${articleId}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete article')
-      }
+      await apiDelete(`/api/articles/${articleId}`)
 
       // 삭제 성공 토스트
       toast.success('글이 삭제되었습니다.')
@@ -35,7 +30,8 @@ export default function DeleteButton({ articleId, articleSlug }: DeleteButtonPro
       router.refresh()
     } catch (error) {
       console.error('Error deleting article:', error)
-      toast.error('글 삭제에 실패했습니다.')
+      const errorMessage = error instanceof Error ? error.message : '글 삭제에 실패했습니다.'
+      toast.error(errorMessage)
       setIsDeleting(false)
       setShowConfirm(false)
     }

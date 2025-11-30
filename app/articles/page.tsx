@@ -103,8 +103,8 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex justify-between items-center">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
+        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold mb-2 text-text-primary">
               {searchQuery ? `"${searchQuery}" 검색 결과` : '모든 글'}
@@ -113,7 +113,17 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
               {searchQuery ? `${articles.length}개의 검색 결과` : `총 ${articles.length}개의 글이 있습니다.`}
             </p>
           </div>
-          <SearchBar />
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <SearchBar />
+            {user && (
+              <Link
+                href="/articles/new"
+                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-all hover:shadow-md font-medium text-center whitespace-nowrap"
+              >
+                새 글 작성
+              </Link>
+            )}
+          </div>
         </div>
 
         {articles.length === 0 ? (

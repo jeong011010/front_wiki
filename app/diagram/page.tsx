@@ -16,7 +16,7 @@ export default function DiagramPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main>
+      <main className="pb-20 md:pb-0">
         <KnowledgeGraph />
       </main>
     </div>

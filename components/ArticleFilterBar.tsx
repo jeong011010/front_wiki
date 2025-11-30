@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/components/ui'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useMemo, useState } from 'react'
 
 interface Category {
   id: string
@@ -329,16 +329,16 @@ export default function ArticleFilterBar({
 
   return (
     <div className="bg-surface border border-border rounded-lg p-1.5 sm:p-2 mb-2">
-      {/* 첫 번째 줄: 검색 바 */}
-      <div className="mb-1 sm:mb-1.5">
-        <Input
-          type="text"
-          placeholder="카테고리 전체에서 검색..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="h-7 sm:h-8 md:h-9 text-xs sm:text-sm py-1 sm:py-1.5"
-        />
-      </div>
+        {/* 첫 번째 줄: 검색 바 */}
+        <div className="mb-1 sm:mb-1.5">
+          <Input
+            type="text"
+            placeholder="카테고리 전체에서 검색..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="h-10 sm:h-11 md:h-12 text-sm sm:text-base py-2 sm:py-2.5"
+          />
+        </div>
 
       {/* 두 번째 줄: 필터 및 정렬 옵션 */}
       <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-0.5 sm:gap-1 md:gap-1.5">

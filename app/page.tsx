@@ -18,7 +18,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 pb-20 md:pb-8">
         {/* 최상단 인기/최신 글 섹션 */}
         <section className="mb-6 md:mb-8">
           <FeaturedArticles />
