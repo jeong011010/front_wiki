@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
     const errorStack = error instanceof Error ? error.stack : undefined
     console.error('Error details:', { errorMessage, errorStack })
     return NextResponse.json(
-      { error: '보유 카드를 불러오는데 실패했습니다.', details: process.env.NODE_ENV === 'development' ? errorMessage : undefined },
+      { error: process.env.NODE_ENV === 'development' ? `보유 카드를 불러오는데 실패했습니다: ${errorMessage}` : '보유 카드를 불러오는데 실패했습니다.' },
       { status: 500 }
     )
   }

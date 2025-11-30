@@ -54,7 +54,7 @@ export async function POST(
     console.error('Error incrementing view count:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json<ApiErrorResponse>(
-      { error: '조회수 증가에 실패했습니다.', details: process.env.NODE_ENV === 'development' ? errorMessage : undefined },
+      { error: process.env.NODE_ENV === 'development' ? `조회수 증가에 실패했습니다: ${errorMessage}` : '조회수 증가에 실패했습니다.' },
       { status: 500 }
     )
   }

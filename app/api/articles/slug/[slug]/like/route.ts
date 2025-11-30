@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma, withRetry } from '@/lib/prisma'
-import { requireAuth } from '@/lib/auth-middleware'
+import { authenticateToken, requireAuth } from '@/lib/auth-middleware'
 import type { ApiErrorResponse } from '@/types'
 
 /**
@@ -14,7 +14,7 @@ export async function GET(
     const { slug } = await params
     
     // 선택적 인증 (비회원도 조회 가능)
-    const authResult = await requireAuth(request, { optional: true })
+    const authResult = await authenticateToken(request)
     const user = authResult.user
     
     // 글 존재 확인
@@ -52,7 +52,7 @@ export async function GET(
     console.error('Error fetching like status:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json<ApiErrorResponse>(
-      { error: '좋아요 상태를 불러오는데 실패했습니다.', details: process.env.NODE_ENV === 'development' ? errorMessage : undefined },
+      { error: process.env.NODE_ENV === 'development' ? `좋아요 상태를 불러오는데 실패했습니다: ${errorMessage}` : '좋아요 상태를 불러오는데 실패했습니다.' },
       { status: 500 }
     )
   }
@@ -141,7 +141,7 @@ export async function POST(
     console.error('Error adding like:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json<ApiErrorResponse>(
-      { error: '좋아요 추가에 실패했습니다.', details: process.env.NODE_ENV === 'development' ? errorMessage : undefined },
+      { error: process.env.NODE_ENV === 'development' ? `좋아요 추가에 실패했습니다: ${errorMessage}` : '좋아요 추가에 실패했습니다.' },
       { status: 500 }
     )
   }
@@ -225,7 +225,7 @@ export async function DELETE(
     console.error('Error removing like:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json<ApiErrorResponse>(
-      { error: '좋아요 제거에 실패했습니다.', details: process.env.NODE_ENV === 'development' ? errorMessage : undefined },
+      { error: process.env.NODE_ENV === 'development' ? `좋아요 제거에 실패했습니다: ${errorMessage}` : '좋아요 제거에 실패했습니다.' },
       { status: 500 }
     )
   }

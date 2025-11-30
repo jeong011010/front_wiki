@@ -177,7 +177,7 @@ export async function PUT(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json<ApiErrorResponse>(
-        { error: error.errors[0].message },
+        { error: error.issues[0]?.message || 'Validation error' },
         { status: 400 }
       )
     }
@@ -185,7 +185,7 @@ export async function PUT(
     console.error('Error reviewing contribution:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json<ApiErrorResponse>(
-      { error: '기여 검토에 실패했습니다.', details: process.env.NODE_ENV === 'development' ? errorMessage : undefined },
+      { error: process.env.NODE_ENV === 'development' ? `기여 검토에 실패했습니다: ${errorMessage}` : '기여 검토에 실패했습니다.' },
       { status: 500 }
     )
   }

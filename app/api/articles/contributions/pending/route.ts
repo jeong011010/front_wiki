@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching pending contributions:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json<ApiErrorResponse>(
-      { error: '기여 목록을 불러오는데 실패했습니다.', details: process.env.NODE_ENV === 'development' ? errorMessage : undefined },
+      { error: process.env.NODE_ENV === 'development' ? `기여 목록을 불러오는데 실패했습니다: ${errorMessage}` : '기여 목록을 불러오는데 실패했습니다.' },
       { status: 500 }
     )
   }

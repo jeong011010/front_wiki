@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
     }
     
     // 정렬 옵션
-    let orderBy: { createdAt?: 'asc' | 'desc'; title?: 'asc' | 'desc' } | { _count: { incomingLinks: 'asc' | 'desc' } }
+    let orderBy: { createdAt?: 'asc' | 'desc'; title?: 'asc' | 'desc' } | undefined
     
     if (sort === 'popular') {
       // 인기순: incomingLinks 개수가 많은 순

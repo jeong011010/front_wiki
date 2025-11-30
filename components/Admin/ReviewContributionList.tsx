@@ -202,19 +202,21 @@ function DiffView({ original, modified, type, contributionData }: {
     let targetStartLine = -1
     let targetEndLine = -1
 
-    lines.forEach((line, index) => {
-      const lineStart = currentPos
-      const lineEnd = currentPos + line.length
+    if (start !== undefined && end !== undefined) {
+      lines.forEach((line, index) => {
+        const lineStart = currentPos
+        const lineEnd = currentPos + line.length
+        
+        if (start >= lineStart && start < lineEnd) {
+          targetStartLine = index
+        }
+        if (end > lineStart && end <= lineEnd) {
+          targetEndLine = index
+        }
       
-      if (start >= lineStart && start < lineEnd) {
-        targetStartLine = index
-      }
-      if (end > lineStart && end <= lineEnd) {
-        targetEndLine = index
-      }
-      
-      currentPos += line.length + 1 // +1 for newline
-    })
+        currentPos += line.length + 1 // +1 for newline
+      })
+    }
 
     return (
       <div className="border border-border rounded-lg overflow-hidden bg-background">
@@ -227,7 +229,7 @@ function DiffView({ original, modified, type, contributionData }: {
           <table className="w-full border-collapse font-mono text-sm">
             <tbody>
               {lines.map((line, index) => {
-                const isTarget = index >= targetStartLine && index <= targetEndLine
+                const isTarget = targetStartLine >= 0 && targetEndLine >= 0 && index >= targetStartLine && index <= targetEndLine
                 const lineNumber = index + 1
 
                 return (

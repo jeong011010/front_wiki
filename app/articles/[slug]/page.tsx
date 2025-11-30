@@ -92,8 +92,11 @@ export default async function ArticlePage({ params }: PageProps) {
       createdAt: true,
       updatedAt: true,
       authorId: true,
+      categoryId: true,
       views: true,
       likes: true,
+      commentsCount: true,
+      referencedCount: true,
       author: {
         select: {
           id: true,
