@@ -175,8 +175,9 @@ export function insertLinks(
  * 제목은 짧고 단순하므로 간단한 로직 사용
  */
 export async function insertLinksInTitle(title: string, excludeArticleId?: string): Promise<string> {
-  // 자기 자신은 제외하고 다른 글의 제목만 매칭
-  const detectedLinks = await detectKeywords(title)
+  try {
+    // 자기 자신은 제외하고 다른 글의 제목만 매칭
+    const detectedLinks = await detectKeywords(title)
   const filteredLinks = excludeArticleId
     ? detectedLinks.filter(link => link.articleId !== excludeArticleId)
     : detectedLinks
