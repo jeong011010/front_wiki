@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { marked } from 'marked'
 import 'github-markdown-css/github-markdown.css'
+import { apiGet, apiPost } from '@/lib/http'
 
 interface ReviewArticle {
   id: string
@@ -32,14 +33,14 @@ export default function ReviewArticleList() {
 
   const fetchReviewArticles = async () => {
     try {
-      const response = await fetch('/api/articles/review')
-      if (!response.ok) {
-        throw new Error('Failed to fetch review articles')
-      }
-      const data = await response.json()
+      const data = await apiGet<{ articles: ReviewArticle[] }>('/api/articles/review')
       setArticles(data.articles || [])
     } catch (error) {
       console.error('Error fetching review articles:', error)
+      // 401/403 에러 시 로그인 페이지로 리다이렉트
+      if (error instanceof Error && error.message.includes('401')) {
+        router.push('/auth/login?redirect=/admin/review')
+      }
     } finally {
       setLoading(false)
     }
@@ -48,17 +49,7 @@ export default function ReviewArticleList() {
   const handleReview = async (articleId: string, status: 'published' | 'rejected') => {
     setReviewing(articleId)
     try {
-      const response = await fetch('/api/articles/review', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ articleId, status }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to review article')
-      }
+      await apiPost('/api/articles/review', { articleId, status })
 
       // 목록에서 제거
       setArticles(articles.filter(a => a.id !== articleId))

@@ -17,6 +17,8 @@ model User {
   updatedAt     DateTime       @updatedAt
   articles      Article[]
   refreshTokens RefreshToken[]
+  userCards     UserCard[]
+  userPoints    UserPoint[]
 
   @@index([email])
 }
@@ -52,6 +54,7 @@ model Article {
   author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
   incomingLinks ArticleLink[] @relation("ToArticle")
   outgoingLinks ArticleLink[] @relation("FromArticle")
+  userCards     UserCard[] // 이 글을 카드로 보유한 사용자들
 
   @@index([slug])
   @@index([title])
@@ -88,4 +91,49 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@index([expiresAt])
+}
+
+// 사용자 보유 카드
+model UserCard {
+  id         String   @id @default(cuid())
+  userId     String
+  articleId  String // 카드로 변환된 글 ID
+  obtainedAt DateTime @default(now())
+  obtainedBy String   @default("author") // 획득 방법: "author" (작성), "contribution" (기여), "draw" (뽑기)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@index([userId])
+  @@index([articleId])
+  @@index([obtainedAt])
+  @@index([obtainedBy])
+}
+
+// 사용자 포인트/기여도
+model UserPoint {
+  id          String   @id @default(cuid())
+  userId      String
+  points      Int      @default(0) // 총 포인트
+  totalPoints Int      @default(0) // 누적 포인트 (사용해도 감소하지 않음)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@index([userId])
+}
+
+// 카드 뽑기 기록
+model CardDraw {
+  id        String   @id @default(cuid())
+  userId    String
+  articleId String? // 뽑은 카드의 글 ID (null이면 꽝)
+  cost      Int      @default(100) // 뽑기 비용
+  drawType  String   @default("normal") // "normal" (일반), "premium" (프리미엄)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([articleId])
+  @@index([createdAt])
 }

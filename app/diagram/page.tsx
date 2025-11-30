@@ -1,6 +1,5 @@
 import KnowledgeGraph from '@/components/Diagram/KnowledgeGraph'
-import Link from 'next/link'
-import AuthButton from '@/components/AuthButton'
+import Header from '@/components/Header'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -16,31 +15,8 @@ export const metadata: Metadata = {
 export default function DiagramPage() {
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-surface border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-primary-500 hover:text-primary-700 transition-colors">
-              프론트위키
-            </Link>
-            <nav className="flex gap-4 items-center">
-              <Link
-                href="/"
-                className="px-4 py-2 bg-secondary-300 text-text-primary rounded-lg hover:bg-secondary-500 transition-all font-medium"
-              >
-                홈
-              </Link>
-              <Link
-                href="/articles"
-                className="px-4 py-2 bg-secondary-300 text-text-primary rounded-lg hover:bg-secondary-500 transition-all font-medium"
-              >
-                글 목록
-              </Link>
-              <AuthButton />
-            </nav>
-          </div>
-        </div>
-      </header>
-      <main>
+      <Header />
+      <main className="pb-20 md:pb-0">
         <KnowledgeGraph />
       </main>
     </div>

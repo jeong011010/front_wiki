@@ -18,7 +18,47 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   })
+
+// 연결 재시도 헬퍼 함수
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  delay = 1000
+): Promise<T> {
+  let lastError: Error | undefined
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      
+      // P1001 (Can't reach database server) 또는 P2021 (Table does not exist) 에러인 경우 재시도
+      const prismaError = error as { code?: string }
+      if (
+        prismaError?.code === 'P1001' ||
+        prismaError?.code === 'P2021'
+      ) {
+        if (i < maxRetries - 1) {
+          console.warn(`Database connection failed, retrying... (${i + 1}/${maxRetries})`)
+          await new Promise((resolve) => setTimeout(resolve, delay * (i + 1)))
+          continue
+        }
+      }
+      
+      // 다른 에러는 즉시 throw
+      throw error
+    }
+  }
+  
+  throw lastError || new Error('Unknown error')
+}
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 

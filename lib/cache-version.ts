@@ -3,7 +3,7 @@
  * 글 작성/수정/삭제 시 버전을 증가시켜 모든 캐시를 자동으로 무효화
  */
 
-import { getCache, setCache, isCacheAvailable } from './cache'
+import { getCache, isCacheAvailable, setCache } from './cache'
 
 const CACHE_VERSION_KEY = 'cache:version:articles'
 const DEFAULT_VERSION = 1

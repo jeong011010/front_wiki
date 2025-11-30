@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
 import * as Sentry from '@sentry/nextjs'
+import { useEffect } from 'react'
 
 export default function SentryInit() {
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function SentryInit() {
       tracesSampleRate: 1.0,
 
       // Setting this option to true will print useful information to the console while you're setting up Sentry.
-      debug: process.env.NODE_ENV === 'development',
+      debug: false, // 콘솔 로그 비활성화
 
       // Browser tracing integration for performance monitoring
       integrations: [

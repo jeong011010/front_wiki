@@ -1,5 +1,5 @@
+import { addRateLimitHeaders, withRateLimit } from '@/app/api/middleware/rate-limit'
 import { NextRequest, NextResponse } from 'next/server'
-import { withRateLimit, addRateLimitHeaders } from '@/app/api/middleware/rate-limit'
 
 /**
  * Rate Limiting 테스트 API

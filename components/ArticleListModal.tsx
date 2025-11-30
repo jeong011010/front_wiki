@@ -1,18 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { ArticleCardSkeleton, Button } from '@/components/ui'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
 import ArticleCard from './ArticleCard'
-import Link from 'next/link'
 
 interface Article {
   id: string
   title: string
+  titleWithLinks?: string // 링크가 포함된 제목 HTML (선택사항)
   slug: string
   category: string | null
   createdAt: string
   updatedAt: string
   preview?: string
+  author?: {
+    name: string
+    email: string
+  } | null
 }
 
 interface ArticleListModalProps {
@@ -112,24 +117,21 @@ export default function ArticleListModal({ category, sortBy, includeSubcategorie
           {/* 컨텐츠 */}
           <div className="flex-1 overflow-y-auto p-6">
             {loading && articles.length === 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="bg-surface border border-border rounded-lg p-6 animate-pulse">
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                  </div>
+                  <ArticleCardSkeleton key={i} />
                 ))}
               </div>
             ) : articles.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 justify-items-center" style={{ padding: '8px' }}>
                   {articles.map((article, index) => (
                     <motion.div
                       key={article.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
+                      style={{ padding: '20px' }}
                     >
                       <ArticleCard article={article} />
                     </motion.div>
@@ -137,13 +139,13 @@ export default function ArticleListModal({ category, sortBy, includeSubcategorie
                 </div>
                 {hasMore && (
                   <div className="mt-6 text-center">
-                    <button
+                    <Button
                       onClick={loadMore}
                       disabled={loading}
-                      className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      size="lg"
                     >
                       {loading ? '불러오는 중...' : '더 불러오기'}
-                    </button>
+                    </Button>
                   </div>
                 )}
               </>
