@@ -1,67 +1,112 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
-import type { Article } from '@prisma/client'
+import { useEffect, useRef, useState } from 'react'
 
 interface ArticleCardProps {
   article: {
     id: string
     title: string
+    titleWithLinks?: string // 링크가 포함된 제목 HTML (선택사항)
     slug: string
     category: string | null
     categorySlug?: string | null
     createdAt: Date | string
     updatedAt: Date | string
     preview?: string
+    imageUrl?: string | null // 대표 이미지 URL (선택사항)
+    author?: {
+      name: string
+      email: string
+      imageUrl?: string | null // 작성자 프로필 이미지 URL (선택사항)
+    } | null
   }
 }
 
-const categoryColors: Record<string, { bg: string; text: string }> = {
-  // 대분류 카테고리 (영어 slug)
-  // 라이트 모드: 밝은 배경 + 진한 텍스트
-  // 다크 모드: 진한 배경 + 밝은 텍스트 (가독성 향상)
-  frontend: { 
-    bg: 'bg-blue-100 dark:bg-blue-800/80', 
-    text: 'text-blue-900 dark:text-blue-50 font-semibold' 
+// 티어별 카드 테두리 색상 및 효과 (포켓몬 카드 스타일)
+const tierStyles: Record<string, {
+  border: string
+  borderGradient: string
+  glow: string
+  shimmer: string
+  name: string
+}> = {
+  // 일반 티어 (회색)
+  general: {
+    border: 'border-gray-400',
+    borderGradient: 'linear-gradient(135deg, #9ca3af, #6b7280, #9ca3af)',
+    glow: 'rgba(156, 163, 175, 0.3)',
+    shimmer: 'rgba(255, 255, 255, 0.3)',
+    name: '일반'
   },
-  backend: { 
-    bg: 'bg-green-100 dark:bg-green-800/80', 
-    text: 'text-green-900 dark:text-green-50 font-semibold' 
+  // 희귀 티어 (파란색)
+  frontend: {
+    border: 'border-blue-500',
+    borderGradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8, #3b82f6)',
+    glow: 'rgba(59, 130, 246, 0.4)',
+    shimmer: 'rgba(147, 197, 253, 0.5)',
+    name: '희귀'
   },
-  cloud: { 
-    bg: 'bg-purple-100 dark:bg-purple-800/80', 
-    text: 'text-purple-900 dark:text-purple-50 font-semibold' 
+  // 에픽 티어 (보라색)
+  cloud: {
+    border: 'border-purple-500',
+    borderGradient: 'linear-gradient(135deg, #a855f7, #7c3aed, #a855f7)',
+    glow: 'rgba(168, 85, 247, 0.4)',
+    shimmer: 'rgba(196, 181, 253, 0.5)',
+    name: '에픽'
   },
-  devops: { 
-    bg: 'bg-orange-100 dark:bg-orange-800/80', 
-    text: 'text-orange-900 dark:text-orange-50 font-semibold' 
+  // 레전드 티어 (금색)
+  backend: {
+    border: 'border-yellow-500',
+    borderGradient: 'linear-gradient(135deg, #eab308, #ca8a04, #eab308)',
+    glow: 'rgba(234, 179, 8, 0.5)',
+    shimmer: 'rgba(254, 240, 138, 0.6)',
+    name: '레전드'
   },
-  general: { 
-    bg: 'bg-gray-100 dark:bg-gray-700/80', 
-    text: 'text-gray-900 dark:text-gray-50 font-semibold' 
+  // 전설 티어 (오렌지/레드)
+  devops: {
+    border: 'border-orange-500',
+    borderGradient: 'linear-gradient(135deg, #f97316, #ea580c, #f97316)',
+    glow: 'rgba(249, 115, 22, 0.4)',
+    shimmer: 'rgba(254, 215, 170, 0.5)',
+    name: '전설'
   },
-  // 프론트엔드 하위 카테고리
-  react: { 
-    bg: 'bg-blue-100 dark:bg-blue-800/80', 
-    text: 'text-blue-900 dark:text-blue-50 font-semibold' 
+  // 기본값
+  react: {
+    border: 'border-blue-500',
+    borderGradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8, #3b82f6)',
+    glow: 'rgba(59, 130, 246, 0.4)',
+    shimmer: 'rgba(147, 197, 253, 0.5)',
+    name: '희귀'
   },
-  nextjs: { 
-    bg: 'bg-blue-100 dark:bg-blue-800/80', 
-    text: 'text-blue-900 dark:text-blue-50 font-semibold' 
+  nextjs: {
+    border: 'border-blue-500',
+    borderGradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8, #3b82f6)',
+    glow: 'rgba(59, 130, 246, 0.4)',
+    shimmer: 'rgba(147, 197, 253, 0.5)',
+    name: '희귀'
   },
-  // 한글 slug (혹시 모를 경우 대비)
-  '프론트엔드': { 
-    bg: 'bg-blue-100 dark:bg-blue-800/80', 
-    text: 'text-blue-900 dark:text-blue-50 font-semibold' 
+  '프론트엔드': {
+    border: 'border-blue-500',
+    borderGradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8, #3b82f6)',
+    glow: 'rgba(59, 130, 246, 0.4)',
+    shimmer: 'rgba(147, 197, 253, 0.5)',
+    name: '희귀'
   },
-  '백엔드': { 
-    bg: 'bg-green-100 dark:bg-green-800/80', 
-    text: 'text-green-900 dark:text-green-50 font-semibold' 
+  '백엔드': {
+    border: 'border-yellow-500',
+    borderGradient: 'linear-gradient(135deg, #eab308, #ca8a04, #eab308)',
+    glow: 'rgba(234, 179, 8, 0.5)',
+    shimmer: 'rgba(254, 240, 138, 0.6)',
+    name: '레전드'
   },
-  '클라우드': { 
-    bg: 'bg-purple-100 dark:bg-purple-800/80', 
-    text: 'text-purple-900 dark:text-purple-50 font-semibold' 
+  '클라우드': {
+    border: 'border-purple-500',
+    borderGradient: 'linear-gradient(135deg, #a855f7, #7c3aed, #a855f7)',
+    glow: 'rgba(168, 85, 247, 0.4)',
+    shimmer: 'rgba(196, 181, 253, 0.5)',
+    name: '에픽'
   },
 }
 
@@ -77,7 +122,6 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   // 카테고리 이름에서 slug 추출 시도 (한글 이름인 경우)
   if (!categoryKey && article.category) {
     const categoryName = article.category.toLowerCase()
-    // 한글 카테고리 이름을 영어 slug로 매핑
     const nameToSlug: Record<string, string> = {
       '프론트엔드': 'frontend',
       '백엔드': 'backend',
@@ -88,25 +132,20 @@ export default function ArticleCard({ article }: ArticleCardProps) {
     categoryKey = nameToSlug[categoryName] || categoryName
   }
   
-  // 디버깅: 카테고리 정보 확인 (개발 환경에서만, 매칭 실패 시에만)
-  if (process.env.NODE_ENV === 'development' && article.category && !categoryColors[categoryKey] && categoryKey !== 'general') {
-    console.warn('카테고리 색상 매칭 실패:', {
-      category: article.category,
-      categorySlug: article.categorySlug,
-      categoryKey,
-      availableKeys: Object.keys(categoryColors)
-    })
-  }
-  
-  const categoryColor = categoryKey 
-    ? categoryColors[categoryKey] || categoryColors.general
-    : categoryColors.general
+  const tierStyle = categoryKey 
+    ? tierStyles[categoryKey] || tierStyles.general
+    : tierStyles.general
 
-  const preview = article.preview || article.title
   const [rotateX, setRotateX] = useState(0)
   const [rotateY, setRotateY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [isHovered, setIsHovered] = useState(false) // 호버 상태 추가
+  const [hasDragged, setHasDragged] = useState(false) // 실제로 드래그가 발생했는지 추적
   const [isMobile, setIsMobile] = useState(true)
+  const [isScrolling, setIsScrolling] = useState(false) // 스크롤 모드인지 확인
   const cardRef = useRef<HTMLAnchorElement>(null)
+  const dragStartPos = useRef<{ x: number; y: number } | null>(null)
+  const dragStartMousePos = useRef<{ x: number; y: number } | null>(null) // 드래그 시작 시 마우스 위치
 
   useEffect(() => {
     const checkMobile = () => {
@@ -117,11 +156,29 @@ export default function ArticleCard({ article }: ArticleCardProps) {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // 모바일에서는 3D 효과 비활성화
+  // PC: 마우스 드래그 시작
+  const handleMouseDown = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (isMobile) return
-    
+    setIsDragging(true)
+    setHasDragged(false) // 드래그 시작 시 초기화
+    setIsScrolling(false) // 스크롤 모드 초기화
     if (!cardRef.current) return
+    
+    const card = cardRef.current
+    const rect = card.getBoundingClientRect()
+    dragStartPos.current = {
+      x: e.clientX - rect.left - rect.width / 2,
+      y: e.clientY - rect.top - rect.height / 2,
+    }
+    dragStartMousePos.current = {
+      x: e.clientX,
+      y: e.clientY,
+    }
+  }
+
+  // PC: 마우스 드래그 중
+  const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!isDragging || !dragStartPos.current || !cardRef.current || !dragStartMousePos.current) return
     
     const card = cardRef.current
     const rect = card.getBoundingClientRect()
@@ -131,109 +188,606 @@ export default function ArticleCard({ article }: ArticleCardProps) {
     const mouseX = e.clientX - centerX
     const mouseY = e.clientY - centerY
     
-    // 회전 각도 계산 (최대 8도, 더 부드럽게)
-    const maxRotate = 8
-    const rotateXValue = (mouseY / (rect.height / 2)) * maxRotate * -1
-    const rotateYValue = (mouseX / (rect.width / 2)) * maxRotate
+    // 드래그 거리 및 방향 계산
+    const deltaX = e.clientX - dragStartMousePos.current.x
+    const deltaY = e.clientY - dragStartMousePos.current.y
+    const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
     
-    setRotateX(rotateXValue)
-    setRotateY(rotateYValue)
+    // 수평 방향으로 큰 움직임이면 스크롤 모드로 전환 (20px 이상)
+    if (Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      setIsScrolling(true)
+      setRotateX(0)
+      setRotateY(0)
+      return // 스크롤 모드에서는 카드 회전 비활성화
+    }
+    
+    // 작은 움직임이거나 수직 방향이면 카드 회전
+    if (!isScrolling && dragDistance > 5) {
+      // 회전 각도 계산 (최대 5도로 제한, 드래그 거리에 비례)
+      const maxRotate = 5
+      const maxDragDistance = Math.max(rect.width, rect.height)
+      const normalizedDistance = Math.min(dragDistance / maxDragDistance, 1)
+      const rotationIntensity = Math.min(normalizedDistance * 0.7, 1)
+      
+      const rotateXValue = Math.max(-maxRotate, Math.min(maxRotate, (mouseY / (rect.height / 2)) * maxRotate * -1 * rotationIntensity))
+      const rotateYValue = Math.max(-maxRotate, Math.min(maxRotate, (mouseX / (rect.width / 2)) * maxRotate * rotationIntensity))
+      
+      setRotateX(rotateXValue)
+      setRotateY(rotateYValue)
+    }
   }
 
-  const handleMouseLeave = () => {
+  // PC: 마우스 드래그 종료
+  const handleMouseUp = () => {
+    setIsDragging(false)
+    setIsScrolling(false)
     setRotateX(0)
     setRotateY(0)
+    dragStartPos.current = null
+    dragStartMousePos.current = null
+  }
+
+  // PC: 마우스가 카드 밖으로 나갔을 때 - 드래그는 계속 유지 (전역 이벤트로 처리)
+  const handleMouseLeave = () => {
+    // 드래그 중이 아닐 때만 회전 초기화 (드래그 중이면 전역 이벤트가 처리)
+    if (!isDragging) {
+      setRotateX(0)
+      setRotateY(0)
+    }
+    setIsHovered(false)
+  }
+
+  // 모바일: 터치 드래그 시작
+  const handleTouchStart = (e: React.TouchEvent<HTMLAnchorElement>) => {
+    if (!isMobile) return
+    setIsDragging(true)
+    setHasDragged(false) // 드래그 시작 시 초기화
+    setIsScrolling(false) // 스크롤 모드 초기화
+    if (!cardRef.current) return
+    
+    const touch = e.touches[0]
+    const card = cardRef.current
+    const rect = card.getBoundingClientRect()
+    dragStartPos.current = {
+      x: touch.clientX - rect.left - rect.width / 2,
+      y: touch.clientY - rect.top - rect.height / 2,
+    }
+    dragStartMousePos.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    }
+  }
+
+  // 모바일: 터치 드래그 중
+  const handleTouchMove = (e: React.TouchEvent<HTMLAnchorElement>) => {
+    if (!isDragging || !dragStartPos.current || !cardRef.current || !dragStartMousePos.current) return
+    
+    const touch = e.touches[0]
+    const card = cardRef.current
+    const rect = card.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+    
+    const touchX = touch.clientX - centerX
+    const touchY = touch.clientY - centerY
+    
+    // 드래그 거리 및 방향 계산
+    const deltaX = touch.clientX - dragStartMousePos.current.x
+    const deltaY = touch.clientY - dragStartMousePos.current.y
+    const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+    
+    // 수평 방향으로 큰 움직임이면 스크롤 모드로 전환 (20px 이상)
+    if (Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      setIsScrolling(true)
+      setRotateX(0)
+      setRotateY(0)
+      return // 스크롤 모드에서는 카드 회전 비활성화
+    }
+    
+    // 작은 움직임이거나 수직 방향이면 카드 회전
+    if (!isScrolling && dragDistance > 5) {
+      // 회전 각도 계산 (최대 5도로 제한, 드래그 거리에 비례)
+      const maxRotate = 5
+      const maxDragDistance = Math.max(rect.width, rect.height)
+      const normalizedDistance = Math.min(dragDistance / maxDragDistance, 1)
+      const rotationIntensity = Math.min(normalizedDistance * 0.7, 1)
+      
+      const rotateXValue = Math.max(-maxRotate, Math.min(maxRotate, (touchY / (rect.height / 2)) * maxRotate * -1 * rotationIntensity))
+      const rotateYValue = Math.max(-maxRotate, Math.min(maxRotate, (touchX / (rect.width / 2)) * maxRotate * rotationIntensity))
+      
+      setRotateX(rotateXValue)
+      setRotateY(rotateYValue)
+    }
+  }
+
+  // 모바일: 터치 드래그 종료
+  const handleTouchEnd = (e: React.TouchEvent<HTMLAnchorElement>) => {
+    setIsDragging(false)
+    setRotateX(0)
+    setRotateY(0)
+    dragStartPos.current = null
+    dragStartMousePos.current = null
+    
+    // 드래그가 발생했으면 클릭 이벤트 방지
+    if (hasDragged) {
+      e.preventDefault()
+      e.stopPropagation()
+      setHasDragged(false)
+    }
+  }
+
+  // 모바일: 전역 터치 이벤트 처리
+  useEffect(() => {
+    if (!isDragging || !isMobile) return
+
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (!isDragging || !cardRef.current || e.touches.length === 0 || !dragStartMousePos.current) return
+      
+      const touch = e.touches[0]
+      
+      // 드래그 거리 계산 (5px 이상 움직이면 드래그로 간주)
+      const dragDistance = Math.sqrt(
+        Math.pow(touch.clientX - dragStartMousePos.current.x, 2) + 
+        Math.pow(touch.clientY - dragStartMousePos.current.y, 2)
+      )
+      
+      if (dragDistance > 5) {
+        setHasDragged(true) // 실제 드래그 발생
+        e.preventDefault() // 스크롤 방지
+      }
+      
+      const card = cardRef.current
+      const rect = card.getBoundingClientRect()
+      const centerX = rect.left + rect.width / 2
+      const centerY = rect.top + rect.height / 2
+      
+      const touchX = touch.clientX - centerX
+      const touchY = touch.clientY - centerY
+      
+      // 회전 각도 계산 (최대 5도로 제한, 드래그 거리에 비례)
+      const maxRotate = 15
+      const maxDragDistance = Math.max(rect.width, rect.height)
+      const normalizedDistance = Math.min(dragDistance / maxDragDistance, 1)
+      const rotationIntensity = Math.min(normalizedDistance * 0.7, 1)
+      
+      const rotateXValue = Math.max(-maxRotate, Math.min(maxRotate, (touchY / (rect.height / 2)) * maxRotate * -1 * rotationIntensity))
+      const rotateYValue = Math.max(-maxRotate, Math.min(maxRotate, (touchX / (rect.width / 2)) * maxRotate * rotationIntensity))
+      
+      setRotateX(rotateXValue)
+      setRotateY(rotateYValue)
+    }
+
+    const handleGlobalTouchEnd = () => {
+      setIsDragging(false)
+      setIsScrolling(false)
+      setRotateX(0)
+      setRotateY(0)
+      dragStartPos.current = null
+      dragStartMousePos.current = null
+      // hasDragged는 handleClick에서 확인 후 초기화
+    }
+
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false })
+    document.addEventListener('touchend', handleGlobalTouchEnd)
+    document.addEventListener('touchcancel', handleGlobalTouchEnd)
+
+    return () => {
+      document.removeEventListener('touchmove', handleGlobalTouchMove)
+      document.removeEventListener('touchend', handleGlobalTouchEnd)
+      document.removeEventListener('touchcancel', handleGlobalTouchEnd)
+    }
+  }, [isDragging, isMobile])
+
+  // 전역 마우스 이벤트 처리 (카드 밖에서도 드래그 유지 및 종료)
+  useEffect(() => {
+    if (!isDragging) return
+
+    const handleGlobalMouseUp = () => {
+      setIsDragging(false)
+      setIsScrolling(false)
+      setRotateX(0)
+      setRotateY(0)
+      dragStartPos.current = null
+      dragStartMousePos.current = null
+      // hasDragged는 handleClick에서 확인 후 초기화
+      // 호버 상태는 마우스 위치에 따라 자동으로 관리됨
+    }
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !cardRef.current || !dragStartMousePos.current) return
+      
+      // 드래그 거리 및 방향 계산
+      const deltaX = e.clientX - dragStartMousePos.current.x
+      const deltaY = e.clientY - dragStartMousePos.current.y
+      const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+      
+      // 수평 방향으로 큰 움직임이면 스크롤 모드로 전환 (20px 이상)
+      if (Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+        setIsScrolling(true)
+        setRotateX(0)
+        setRotateY(0)
+        return // 스크롤 모드에서는 카드 회전 비활성화
+      }
+      
+      // 작은 움직임이거나 수직 방향이면 카드 회전
+      if (!isScrolling && dragDistance > 5) {
+        setHasDragged(true) // 실제 드래그 발생
+        
+        const card = cardRef.current
+        const rect = card.getBoundingClientRect()
+        const centerX = rect.left + rect.width / 2
+        const centerY = rect.top + rect.height / 2
+        
+        const mouseX = e.clientX - centerX
+        const mouseY = e.clientY - centerY
+        
+        // 회전 각도 계산 (최대 5도로 제한, 드래그 거리에 비례)
+        const maxRotate = 5 // 최대 회전 각도 감소
+        const maxDragDistance = Math.max(rect.width, rect.height) // 카드 크기에 비례한 최대 드래그 거리
+        const normalizedDistance = Math.min(dragDistance / maxDragDistance, 1) // 0~1 사이로 정규화
+        
+        // 드래그 거리에 비례하여 회전 강도 조절 (최대 0.7배까지만)
+        const rotationIntensity = Math.min(normalizedDistance * 0.7, 1)
+        
+        const rotateXValue = Math.max(-maxRotate, Math.min(maxRotate, (mouseY / (rect.height / 2)) * maxRotate * -1 * rotationIntensity))
+        const rotateYValue = Math.max(-maxRotate, Math.min(maxRotate, (mouseX / (rect.width / 2)) * maxRotate * rotationIntensity))
+        
+        setRotateX(rotateXValue)
+        setRotateY(rotateYValue)
+      }
+    }
+
+    if (!isMobile) {
+      // 전역 이벤트로 카드 밖에서도 드래그 추적
+      document.addEventListener('mousemove', handleGlobalMouseMove)
+      document.addEventListener('mouseup', handleGlobalMouseUp)
+    }
+
+    return () => {
+      if (!isMobile) {
+        document.removeEventListener('mousemove', handleGlobalMouseMove)
+        document.removeEventListener('mouseup', handleGlobalMouseUp)
+      }
+    }
+  }, [isDragging, isMobile, isScrolling])
+
+  // 대표 이미지가 없을 때 사용할 이니셜 (제목의 첫 글자)
+  const initial = article.title.charAt(0).toUpperCase()
+
+  // 드래그가 발생했으면 링크 클릭 방지
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (hasDragged) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    // 클릭 처리 후 드래그 상태 초기화
+    setHasDragged(false)
+  }
+
+  // 그림자 계산 (드래그 > 호버 > 기본 순서로 강도 증가)
+  const getBoxShadow = () => {
+    if (isDragging) {
+      // 드래그 중: 강한 그림자
+      return '0 16px 32px -8px rgba(0, 0, 0, 0.2), 0 4px 8px -2px rgba(0, 0, 0, 0.15)'
+    } else if (isHovered) {
+      // 호버 중: 중간 강도의 그림자
+      return '0 10px 20px -5px rgba(0, 0, 0, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.1)'
+    } else {
+      // 기본: 선명한 그림자
+      return '0 4px 8px -2px rgba(0, 0, 0, 0.12), 0 2px 4px -1px rgba(0, 0, 0, 0.08)'
+    }
+  }
+
+  // 스케일 계산 (드래그 시 약간만 확대)
+  const getScale = () => {
+    if (isDragging) {
+      return 1.01 // 드래그 시 매우 미세한 확대
+    } else if (isHovered) {
+      return 1.005 // 호버 시 거의 느껴지지 않는 확대
+    }
+    return 1
   }
 
   return (
     <Link
       ref={cardRef}
       href={`/articles/${article.slug}`}
-      className="block relative bg-gradient-to-br from-surface via-surface to-surface-hover border border-border rounded-xl p-3 sm:p-4 md:p-5 group overflow-hidden"
+      onClick={handleClick}
+      className="block relative bg-white rounded-2xl overflow-hidden group select-none"
       style={{ 
         display: 'flex', 
         flexDirection: 'column',
-        contain: 'layout style',
+        contain: 'layout style paint',
         transformStyle: 'preserve-3d',
         perspective: '1000px',
-        transform: !isMobile
-          ? `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${rotateX !== 0 || rotateY !== 0 ? 1.02 : 1})`
-          : 'none',
-        transition: 'transform 0.15s ease-out, box-shadow 0.3s ease-out',
-        boxShadow: rotateX !== 0 || rotateY !== 0 
-          ? '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.15) inset'
-          : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05) inset',
-        maxWidth: '100%',
-        minHeight: '160px',
-        height: '100%',
+        transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${getScale()})`,
+        transition: isDragging ? 'box-shadow 0.2s ease-out' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: getBoxShadow(),
+        width: '240px',
+        height: '320px',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        willChange: 'transform',
+        WebkitFontSmoothing: 'antialiased',
+        MozOsxFontSmoothing: 'grayscale',
+        imageRendering: 'crisp-edges',
       }}
+      onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
+      onMouseUp={handleMouseUp}
+      onMouseEnter={() => !isMobile && setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false)
+        handleMouseLeave()
+      }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
-      {/* 빛 반사 효과 (그라데이션 오버레이) - 포켓몬 카드 스타일 */}
+      {/* 티어별 반짝이는 테두리 - 포켓몬 카드 스타일 */}
       <div 
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-xl"
+        className={`absolute inset-0 rounded-2xl z-40 pointer-events-none border-4 ${tierStyle.border}`}
+        style={{
+          background: tierStyle.borderGradient,
+          WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
+          WebkitMaskComposite: 'destination-out',
+          maskComposite: 'exclude',
+          boxShadow: `0 0 20px ${tierStyle.glow}, inset 0 0 20px ${tierStyle.glow}`,
+          transform: 'translateZ(0)',
+        }}
+      />
+      
+      {/* 테두리 그라데이션 오버레이 */}
+      <div 
+        className="absolute inset-0 rounded-2xl z-39 pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg, transparent 0%, transparent 2%, ${tierStyle.shimmer} 2%, ${tierStyle.shimmer} 4%, transparent 4%, transparent 96%, ${tierStyle.shimmer} 96%, ${tierStyle.shimmer} 98%, transparent 98%)`,
+          transform: 'translateZ(0)',
+        }}
+      />
+      
+      {/* 티어별 테두리 그라데이션 오버레이 */}
+      <div 
+        className="absolute inset-0 rounded-2xl z-39 pointer-events-none"
+        style={{
+          padding: '4px',
+          background: tierStyle.borderGradient,
+          WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          WebkitMaskComposite: 'xor',
+          maskComposite: 'exclude',
+          transform: 'translateZ(0)',
+        }}
+      />
+      
+      {/* 회전 시 빛 반사 효과 - 홀로그래픽 */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl z-30"
+        style={{
+          background: `linear-gradient(${135 + rotateY * 4}deg, 
+            ${tierStyle.shimmer} 0%, 
+            ${tierStyle.shimmer} 20%,
+            transparent 40%, 
+            transparent 60%,
+            ${tierStyle.shimmer} 80%,
+            ${tierStyle.shimmer} 100%)`,
+          transform: `translateZ(50px)`,
+          mixBlendMode: 'overlay',
+          animation: 'shimmer 3s infinite',
+        }}
+      />
+      
+      {/* 티어별 글로우 효과 */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl z-20"
+        style={{
+          boxShadow: `0 0 30px ${tierStyle.glow}, inset 0 0 30px ${tierStyle.glow}`,
+        }}
+      />
+      {/* 홀로그래픽 반사 효과 - 포켓몬 카드 스타일 */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl z-30"
         style={{
           background: `linear-gradient(${135 + rotateY * 3}deg, 
-            rgba(255, 255, 255, 0.4) 0%, 
-            rgba(255, 255, 255, 0.1) 30%,
-            transparent 60%, 
-            rgba(0, 0, 0, 0.1) 100%)`,
-          transform: `translateZ(30px)`,
+            rgba(255, 255, 255, 0.6) 0%, 
+            rgba(255, 255, 255, 0.2) 25%,
+            transparent 50%, 
+            rgba(0, 0, 0, 0.1) 75%,
+            transparent 100%)`,
+          transform: `translateZ(40px)`,
           mixBlendMode: 'overlay',
         }}
       />
       
-      {/* 카드 테두리 하이라이트 */}
+      {/* 카드 테두리 글로우 효과 */}
       <div 
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-xl"
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl z-20"
         style={{
-          background: `linear-gradient(${45 + rotateY * 2}deg, 
-            transparent 0%,
-            rgba(79, 70, 229, 0.1) 50%,
-            transparent 100%)`,
-          border: '1px solid rgba(79, 70, 229, 0.2)',
+          boxShadow: `inset 0 0 20px rgba(79, 70, 229, 0.2), 0 0 30px rgba(79, 70, 229, 0.1)`,
         }}
       />
       
-      {/* 카드 내용 */}
-      <div className="relative z-10 flex flex-col h-full">
-        <div className="flex items-start justify-between mb-1.5 sm:mb-2 gap-1.5 sm:gap-2">
-        <h3 className="text-sm sm:text-base md:text-lg font-semibold text-text-primary group-hover:text-primary-500 transition-colors line-clamp-2 flex-1">
-          {article.title}
-        </h3>
+      {/* 상단: 제목 영역 */}
+      <div 
+        className="relative z-10 px-4 pt-4 pb-2 bg-gradient-to-b from-white to-gray-50"
+        style={{
+          transform: 'translateZ(0)',
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          textRendering: 'optimizeLegibility',
+        }}
+      >
+        {/* 티어 배지 */}
         {article.category && (
-          <span className={`px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-xs font-medium rounded flex-shrink-0 ${categoryColor.bg} ${categoryColor.text} whitespace-nowrap`}>
-            {article.category}
-          </span>
+          <div className="mb-2 flex items-center gap-2">
+            <div 
+              className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border-2 ${tierStyle.border} bg-white/80 backdrop-blur-sm`}
+              style={{
+                color: tierStyle.borderGradient.includes('blue') ? '#1d4ed8' : 
+                       tierStyle.borderGradient.includes('purple') ? '#7c3aed' :
+                       tierStyle.borderGradient.includes('yellow') ? '#ca8a04' :
+                       tierStyle.borderGradient.includes('orange') ? '#ea580c' : '#6b7280',
+                transform: 'translateZ(0)',
+                boxShadow: `0 0 10px ${tierStyle.glow}`,
+              }}
+            >
+              {tierStyle.name}
+            </div>
+            <div 
+              className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700"
+              style={{ transform: 'translateZ(0)' }}
+            >
+              {article.category}
+            </div>
+          </div>
+        )}
+        
+        {/* 제목 (링크 포함 가능) */}
+        <h3 
+          className="text-lg font-black text-text-primary line-clamp-1 leading-tight"
+          style={{
+            transform: 'translateZ(0)',
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+            textRendering: 'optimizeLegibility',
+          }}
+          title={article.title}
+          dangerouslySetInnerHTML={{
+            __html: article.titleWithLinks || article.title
+          }}
+        />
+      </div>
+      
+      {/* 중간: 이미지 영역 */}
+      <div 
+        className="relative w-full flex-1 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden"
+        style={{
+          transform: 'translateZ(0)',
+          willChange: 'transform',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          minHeight: '180px',
+        }}
+      >
+        {article.imageUrl ? (
+          <>
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                transform: 'translateZ(0)',
+                willChange: 'transform',
+                imageRendering: 'crisp-edges',
+                WebkitFontSmoothing: 'antialiased',
+              }}
+            >
+              <Image
+                src={article.imageUrl}
+                alt={article.title}
+                fill
+                className="object-cover z-10"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                quality={100}
+                priority={false}
+              />
+            </div>
+            {/* 이미지 오버레이 그라데이션 */}
+            <div 
+              className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent z-20"
+              style={{ transform: 'translateZ(0)' }}
+            />
+          </>
+        ) : (
+          // 이미지가 없을 때: 티어 색상 기반 그라데이션 + 이니셜
+          <div 
+            className="w-full h-full flex items-center justify-center relative z-10"
+            style={{
+              background: tierStyle.borderGradient,
+              transform: 'translateZ(0)',
+            }}
+          >
+            <div 
+              className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"
+              style={{ transform: 'translateZ(0)' }}
+            />
+            <span 
+              className="text-8xl font-black text-white drop-shadow-2xl relative z-10"
+              style={{
+                transform: 'translateZ(0)',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale',
+                textRendering: 'optimizeLegibility',
+              }}
+            >
+              {initial}
+            </span>
+          </div>
         )}
       </div>
       
-      {preview && (
-        <p className="text-text-secondary text-[11px] sm:text-xs md:text-sm mb-1.5 sm:mb-2 line-clamp-2 flex-1">
-          {preview}
-        </p>
-      )}
-      
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-text-tertiary mt-auto">
-          <span>
-            {new Date(article.createdAt).toLocaleDateString('ko-KR', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </span>
-          {new Date(article.updatedAt).getTime() !== new Date(article.createdAt).getTime() && (
-            <span className="text-text-tertiary">
-              수정: {new Date(article.updatedAt).toLocaleDateString('ko-KR', {
+      {/* 하단: 작성자 및 날짜 영역 */}
+      <div 
+        className="relative z-10 px-4 pb-4 pt-3 bg-gradient-to-b from-gray-50 to-white"
+        style={{
+          transform: 'translateZ(0)',
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          textRendering: 'optimizeLegibility',
+        }}
+      >
+        {/* 작성자 정보 */}
+        {article.author && (
+          <div className="flex items-center gap-2 mb-2">
+            {/* 작성자 아바타 */}
+            {article.author.imageUrl ? (
+              <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 relative">
+                <Image
+                  src={article.author.imageUrl}
+                  alt={article.author.name}
+                  fill
+                  className="object-cover"
+                  sizes="24px"
+                  onError={() => {
+                    // 이미지 로드 실패는 CSS로 처리 (fallback 배경색)
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                <span className="text-[10px] font-bold text-gray-600">
+                  {article.author.name.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            <span className="text-xs font-semibold text-text-primary truncate">
+              {article.author.name}
+            </span>
+          </div>
+        )}
+        
+        {/* 하단 정보 바 */}
+        <div 
+          className="flex items-center justify-between pt-2 border-t border-gray-200"
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <div className="flex items-center gap-1">
+            <svg className="w-3 h-3 text-text-secondary" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+            </svg>
+            <span className="text-[10px] font-bold text-text-secondary">
+              {new Date(article.createdAt).toLocaleDateString('ko-KR', {
+                year: 'numeric',
                 month: 'short',
                 day: 'numeric',
               })}
             </span>
-          )}
+          </div>
+          <div className="text-[10px] font-bold text-text-tertiary">
+            #{article.id.slice(-4)}
+          </div>
         </div>
       </div>
+      
+      {/* 하단 테두리 장식 */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gray-400 to-transparent opacity-50" />
     </Link>
   )
 }
-

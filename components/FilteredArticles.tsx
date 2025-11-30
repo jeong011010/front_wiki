@@ -1,24 +1,27 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
-import ArticleFilterBar from './ArticleFilterBar'
-import ArticleCard from './ArticleCard'
-import ArticleListModal from './ArticleListModal'
 import { ArticleCardSkeleton } from '@/components/ui'
+import { useEffect, useRef, useState } from 'react'
+import ArticleCard from './ArticleCard'
+import ArticleFilterBar from './ArticleFilterBar'
+import ArticleListModal from './ArticleListModal'
 
 interface Article {
   id: string
   title: string
+  titleWithLinks?: string // 링크가 포함된 제목 HTML (선택사항)
   slug: string
   category: string | null
   categorySlug?: string | null
   createdAt: string
   updatedAt: string
   preview?: string
+  author?: {
+    name: string
+    email: string
+  } | null
 }
 
-// 그리드 높이 계산: 카드 높이(240px) * 2행 + gap(1.5rem = 24px)
-const GRID_HEIGHT = 'calc(240px * 2 + 1.5rem)'
 
 export default function FilteredArticles() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -28,7 +31,7 @@ export default function FilteredArticles() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const gridRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let isCancelled = false
@@ -88,34 +91,17 @@ export default function FilteredArticles() {
     }
   }, [selectedCategory, sortBy, includeSubcategories, searchQuery])
 
-  // 항상 6개 슬롯을 유지 (빈 슬롯 포함) - 메모이제이션으로 불필요한 재계산 방지
-  // 로딩 중이어도 카드 슬롯은 유지하고, 스켈레톤은 오버레이로 표시
-  const displayItems = useMemo(() => {
-    if (articles.length > 0) {
-      return [
-        ...articles.map(article => ({ 
-          type: 'article' as const, 
-          id: article.id, 
-          article 
-        })),
-        ...Array(Math.max(0, 6 - articles.length)).fill(null).map((_, i) => ({ 
-          type: 'empty' as const, 
-          id: `empty-${i}` 
-        }))
-      ]
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -256, behavior: 'smooth' }) // 카드 너비(240px) + 패딩(8px*2) + gap(4px) = 260px, 약간 여유있게 256px
     }
-    
-    // articles가 없고 로딩 중이 아닐 때만 empty-state 표시
-    if (!loading) {
-      return [{ type: 'empty-state' as const, id: 'empty-state' }]
+  }
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 256, behavior: 'smooth' }) // 카드 너비(240px) + 패딩(8px*2) + gap(4px) = 260px, 약간 여유있게 256px
     }
-    
-    // 로딩 중일 때는 빈 슬롯 6개 (스켈레톤은 오버레이로 표시)
-    return Array(6).fill(null).map((_, i) => ({ 
-      type: 'empty' as const, 
-      id: `loading-slot-${i}` 
-    }))
-  }, [loading, articles])
+  }
 
   return (
     <section>
@@ -138,60 +124,68 @@ export default function FilteredArticles() {
         )}
       </div>
 
-      {/* 반응형 그리드 - 모바일 1개, 태블릿 이상 2개씩 표시 */}
-      <div 
-        ref={gridRef}
-        className="relative grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4"
-        style={{ 
-          minHeight: 'auto',
-          contain: 'layout style paint'
-        }}
-      >
-        {/* 실제 카드 또는 빈 슬롯 - 항상 렌더링 */}
-        {displayItems.map((item) => {
-          if (item.type === 'article') {
-            return (
-              <div key={item.id}>
-                <ArticleCard article={item.article} />
-              </div>
-            )
-          }
-          
-          if (item.type === 'empty') {
-            return (
-              <div 
-                key={item.id} 
-                style={{ 
-                  minHeight: '200px',
-                  contain: 'layout style'
-                }} 
-                aria-hidden="true" 
-              />
-            )
-          }
-          
-          // empty-state
-          return (
-            <div 
-              key={item.id}
-              className="col-span-full text-center bg-surface border border-border rounded-lg flex items-center justify-center py-12"
+      {/* 가로 스크롤 컨테이너 - FeaturedArticles와 동일한 스타일 */}
+      <div className="relative">
+        {/* 좌우 스크롤 버튼 (데스크톱, 3개 이상일 때) */}
+        {articles.length > 3 && (
+          <>
+            <button
+              onClick={scrollLeft}
+              className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 items-center justify-center bg-surface border border-border rounded-full shadow-lg hover:bg-surface-hover transition-colors"
+              aria-label="왼쪽으로 스크롤"
             >
-              <p className="text-text-secondary">표시할 글이 없습니다.</p>
-            </div>
-          )
-        })}
-        
-        {/* 스켈레톤 오버레이 - 로딩 중일 때만 표시 */}
-        {loading && (
-          <div 
-            className="absolute inset-0 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 pointer-events-none"
-            style={{ zIndex: 10 }}
-          >
-            {Array(6).fill(null).map((_, i) => (
-              <ArticleCardSkeleton key={`skeleton-overlay-${i}`} />
-            ))}
-          </div>
+              <svg className="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={scrollRight}
+              className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 items-center justify-center bg-surface border border-border rounded-full shadow-lg hover:bg-surface-hover transition-colors"
+              aria-label="오른쪽으로 스크롤"
+            >
+              <svg className="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
         )}
+
+        {/* 가로 스크롤 가능한 카드 컨테이너 */}
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto scrollbar-hide -mx-4 px-4"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            paddingTop: '60px', // 카드 회전 시 상단 잘림 방지
+            paddingBottom: '60px', // 카드 회전 시 하단 잘림 방지
+            marginTop: '-60px', // 상단 패딩으로 인한 레이아웃 시프트 보정
+            marginBottom: '-60px', // 하단 패딩으로 인한 레이아웃 시프트 보정
+          }}
+        >
+          <div className="flex gap-1 min-w-max">
+            {loading ? (
+              // 로딩 중 스켈레톤
+              Array(6).fill(null).map((_, i) => (
+                <div key={`skeleton-${i}`} className="flex-shrink-0" style={{ padding: '8px', boxSizing: 'border-box' }}>
+                  <ArticleCardSkeleton />
+                </div>
+              ))
+            ) : articles.length > 0 ? (
+              // 실제 카드
+              articles.map((article) => (
+                <div key={article.id} className="flex-shrink-0" style={{ padding: '8px', boxSizing: 'border-box' }}>
+                  <ArticleCard article={article} />
+                </div>
+              ))
+            ) : (
+              // 빈 상태
+              <div className="w-full text-center bg-surface border border-border rounded-lg py-12">
+                <p className="text-text-secondary">표시할 글이 없습니다.</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       
       {/* 더보기 버튼 - 동적 위치 */}

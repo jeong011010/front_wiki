@@ -1,19 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import ArticleCard from './ArticleCard'
 import { ArticleCardSkeleton, Button } from '@/components/ui'
-import Link from 'next/link'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import ArticleCard from './ArticleCard'
 
 interface Article {
   id: string
   title: string
+  titleWithLinks?: string // 링크가 포함된 제목 HTML (선택사항)
   slug: string
   category: string | null
   createdAt: string
   updatedAt: string
   preview?: string
+  author?: {
+    name: string
+    email: string
+  } | null
 }
 
 interface ArticleListModalProps {
@@ -113,20 +117,21 @@ export default function ArticleListModal({ category, sortBy, includeSubcategorie
           {/* 컨텐츠 */}
           <div className="flex-1 overflow-y-auto p-6">
             {loading && articles.length === 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {[...Array(6)].map((_, i) => (
                   <ArticleCardSkeleton key={i} />
                 ))}
               </div>
             ) : articles.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 justify-items-center" style={{ padding: '8px' }}>
                   {articles.map((article, index) => (
                     <motion.div
                       key={article.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
+                      style={{ padding: '20px' }}
                     >
                       <ArticleCard article={article} />
                     </motion.div>

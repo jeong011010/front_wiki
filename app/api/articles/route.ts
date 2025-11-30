@@ -1,13 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { authenticateToken, requireAuth } from '@/lib/auth-middleware'
+import { createVersionedCacheKey, getCache, isCacheAvailable, setCache } from '@/lib/cache'
+import { incrementCacheVersion } from '@/lib/cache-version'
+import { obtainCardByAuthor } from '@/lib/card-system'
+import { detectKeywords, insertLinksInTitle } from '@/lib/link-detector'
 import { prisma } from '@/lib/prisma'
 import { slugify } from '@/lib/utils'
-import { detectKeywords } from '@/lib/link-detector'
-import { authenticateToken, requireAuth } from '@/lib/auth-middleware'
-import { getCache, setCache, createVersionedCacheKey, isCacheAvailable } from '@/lib/cache'
-import { incrementCacheVersion } from '@/lib/cache-version'
-import { z } from 'zod'
+import type { ApiErrorResponse, ArticleCreateResponse, ArticlesListResponse } from '@/types'
 import type { Prisma } from '@prisma/client'
-import type { ArticlesListResponse, ArticleCreateResponse, ApiErrorResponse } from '@/types'
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 
 const articleSchema = z.object({
   title: z.string().min(1),
@@ -121,6 +122,13 @@ export async function GET(request: NextRequest) {
               slug: true,
             },
           },
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           _count: {
             select: {
               incomingLinks: true,
@@ -141,25 +149,33 @@ export async function GET(request: NextRequest) {
         })
         .slice(offset, offset + limit)
       
-      // 미리보기 생성
-      const articlesWithPreview = sortedArticles.map((article) => {
+      // 미리보기 생성 및 제목에 링크 삽입
+      const articlesWithPreview = await Promise.all(sortedArticles.map(async (article) => {
         const preview = article.content
           .replace(/<[^>]*>/g, '')
           .replace(/\n/g, ' ')
           .substring(0, 150)
           .trim()
         
+        // 제목에 링크 삽입 (자기 자신 제외)
+        const titleWithLinks = await insertLinksInTitle(article.title, article.id)
+        
         return {
           id: article.id,
           title: article.title,
+          titleWithLinks, // 링크가 포함된 제목 HTML
           slug: article.slug,
           category: article.category ? article.category.name : null,
           categorySlug: article.category ? article.category.slug : null,
           createdAt: article.createdAt,
           updatedAt: article.updatedAt,
           preview,
+          author: article.author ? {
+            name: article.author.name,
+            email: article.author.email,
+          } : null,
         }
-      })
+      }))
       
       // 디버깅: 조회된 글 목록 로그 (인기순)
       console.log('[전체글 API - 인기순] 조회된 글 개수:', articlesWithPreview.length)
@@ -189,31 +205,46 @@ export async function GET(request: NextRequest) {
               slug: true,
             },
           },
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
         },
         orderBy,
         take: limit,
         skip: offset,
       })
       
-      // 미리보기 생성
-      const articlesWithPreview = articles.map((article) => {
+      // 미리보기 생성 및 제목에 링크 삽입
+      const articlesWithPreview = await Promise.all(articles.map(async (article) => {
         const preview = article.content
           .replace(/<[^>]*>/g, '')
           .replace(/\n/g, ' ')
           .substring(0, 150)
           .trim()
         
+        // 제목에 링크 삽입 (자기 자신 제외)
+        const titleWithLinks = await insertLinksInTitle(article.title, article.id)
+        
         return {
           id: article.id,
           title: article.title,
+          titleWithLinks, // 링크가 포함된 제목 HTML
           slug: article.slug,
           category: article.category ? article.category.name : null,
           categorySlug: article.category ? article.category.slug : null,
           createdAt: article.createdAt,
           updatedAt: article.updatedAt,
           preview,
+          author: article.author ? {
+            name: article.author.name,
+            email: article.author.email,
+          } : null,
         }
-      })
+      }))
       
       // 디버깅: 조회된 글 목록 로그 (최신순/제목순)
       console.log('[전체글 API - 최신순/제목순] 조회된 글 개수:', articlesWithPreview.length)
@@ -290,12 +321,37 @@ export async function POST(request: NextRequest) {
       },
     })
     
-    // 자동 링크 감지 및 생성 (자기 자신 제외)
+    // 글 작성 시 자동으로 카드 획득 (공개된 글만)
+    if (status === 'published') {
+      try {
+        await obtainCardByAuthor(user.id, article.id)
+      } catch (error) {
+        console.error('Error obtaining card:', error)
+        // 카드 획득 실패해도 글 작성은 성공으로 처리
+      }
+    }
+    
+    // 자동 링크 감지 및 생성 (제목과 내용 모두에서, 자기 자신 제외)
     try {
-      const detectedLinks = await detectKeywords(content)
+      // 제목과 내용 모두에서 키워드 감지
+      const [titleLinks, contentLinks] = await Promise.all([
+        detectKeywords(title),
+        detectKeywords(content),
+      ])
+      
+      // 두 결과를 합치고 중복 제거 (같은 articleId와 keyword 조합은 하나만 유지)
+      const allLinks = [...titleLinks, ...contentLinks]
+      const uniqueLinks = new Map<string, typeof titleLinks[0]>()
+      
+      for (const link of allLinks) {
+        const key = `${link.articleId}-${link.keyword.toLowerCase()}`
+        if (!uniqueLinks.has(key)) {
+          uniqueLinks.set(key, link)
+        }
+      }
       
       // 자기 자신을 참조하는 링크 제외
-      const validLinks = detectedLinks.filter(link => link.articleId !== article.id)
+      const validLinks = Array.from(uniqueLinks.values()).filter(link => link.articleId !== article.id)
       
       // 링크 관계 생성 (자동 링크는 "auto" 타입으로)
       if (validLinks.length > 0) {

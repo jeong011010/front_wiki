@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticateToken } from '@/lib/auth-middleware'
 import { getCache, setCache, createVersionedCacheKey, isCacheAvailable } from '@/lib/cache'
+import { insertLinksInTitle } from '@/lib/link-detector'
 import type { ArticlesListResponse, ApiErrorResponse } from '@/types'
 
 /**
@@ -53,6 +54,13 @@ export async function GET(request: NextRequest) {
               slug: true,
             },
           },
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           _count: {
             select: {
               incomingLinks: true,
@@ -81,6 +89,10 @@ export async function GET(request: NextRequest) {
           createdAt: article.createdAt,
           updatedAt: article.updatedAt,
           content: article.content,
+          author: article.author ? {
+            name: article.author.name,
+            email: article.author.email,
+          } : null,
         }))
     } else {
       // 최신순: createdAt 기준
@@ -96,6 +108,13 @@ export async function GET(request: NextRequest) {
               slug: true,
             },
           },
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
         },
       })
       
@@ -109,28 +128,37 @@ export async function GET(request: NextRequest) {
         createdAt: article.createdAt,
         updatedAt: article.updatedAt,
         content: article.content,
+        author: article.author ? {
+          name: article.author.name,
+          email: article.author.email,
+        } : null,
       }))
     }
     
-    // 미리보기 생성 (150자)
-    const articlesWithPreview = articles.map((article) => {
+    // 미리보기 생성 및 제목에 링크 삽입 (150자)
+    const articlesWithPreview = await Promise.all(articles.map(async (article) => {
       const preview = article.content
         .replace(/<[^>]*>/g, '') // HTML 태그 제거
         .replace(/\n/g, ' ') // 줄바꿈 제거
         .substring(0, 150) // 150자로 제한
         .trim()
       
+      // 제목에 링크 삽입 (자기 자신 제외)
+      const titleWithLinks = await insertLinksInTitle(article.title, article.id)
+      
       return {
         id: article.id,
         title: article.title,
+        titleWithLinks, // 링크가 포함된 제목 HTML
         slug: article.slug,
         category: article.category,
         categorySlug: article.categorySlug,
         createdAt: article.createdAt,
         updatedAt: article.updatedAt,
         preview,
+        author: article.author,
       }
-    })
+    }))
     
     // 디버깅: 조회된 글 목록 로그
     console.log('[추천글 API] 조회된 글 개수:', articlesWithPreview.length)

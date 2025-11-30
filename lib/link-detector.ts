@@ -170,3 +170,97 @@ export function insertLinks(
   return result
 }
 
+/**
+ * 제목에 링크를 삽입한 HTML 반환
+ * 제목은 짧고 단순하므로 간단한 로직 사용
+ */
+export async function insertLinksInTitle(title: string, excludeArticleId?: string): Promise<string> {
+  // 자기 자신은 제외하고 다른 글의 제목만 매칭
+  const detectedLinks = await detectKeywords(title)
+  const filteredLinks = excludeArticleId
+    ? detectedLinks.filter(link => link.articleId !== excludeArticleId)
+    : detectedLinks
+  
+  if (filteredLinks.length === 0) {
+    return title // 링크가 없으면 원본 반환
+  }
+  
+  // 제목에 링크 삽입 (줄바꿈 처리 없이)
+  let result = title
+  const processedIndices = new Set<number>()
+  
+  // 긴 키워드부터 처리 (겹침 방지)
+  const sortedLinks = [...filteredLinks].sort((a, b) => b.keyword.length - a.keyword.length)
+  
+  for (const link of sortedLinks) {
+    const keyword = link.keyword
+    const slug = link.slug || link.articleId
+    
+    // 한글과 영문 모두 지원하는 단어 경계 매칭
+    const hasKorean = /[가-힣]/.test(keyword)
+    let regex: RegExp
+    if (hasKorean) {
+      regex = new RegExp(`(^|[\\s\\n\\r.,!?;:()\\[\\]{}"'<>/\\\\-])${escapeRegex(keyword)}`, 'gi')
+    } else {
+      regex = new RegExp(`\\b${escapeRegex(keyword)}\\b`, 'gi')
+    }
+    
+    // 모든 매칭 위치 찾기
+    let match
+    const matches: Array<{ index: number; length: number; text: string }> = []
+    
+    while ((match = regex.exec(result)) !== null) {
+      const fullMatch = match[0]
+      const boundaryChar = match[1] || ''
+      const keywordStart = boundaryChar.length
+      const keywordText = fullMatch.substring(keywordStart)
+      
+      const startIndex = match.index + keywordStart
+      const endIndex = startIndex + keywordText.length
+      
+      // 이미 처리된 범위인지 확인
+      let isProcessed = false
+      for (let i = startIndex; i < endIndex; i++) {
+        if (processedIndices.has(i)) {
+          isProcessed = true
+          break
+        }
+      }
+      
+      if (!isProcessed) {
+        // 이미 링크 태그 안에 있는지 확인
+        const beforeMatch = result.substring(0, startIndex)
+        const lastOpenTag = beforeMatch.lastIndexOf('<a')
+        const lastCloseTag = beforeMatch.lastIndexOf('</a>')
+        
+        if (lastOpenTag > lastCloseTag) {
+          continue
+        }
+        
+        matches.push({
+          index: startIndex,
+          length: keywordText.length,
+          text: keywordText,
+        })
+      }
+    }
+    
+    // 뒤에서부터 처리 (인덱스 변경 방지)
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const match = matches[i]
+      const before = result.substring(0, match.index)
+      const after = result.substring(match.index + match.length)
+      const replacement = `<a href="/articles/${slug}" class="text-link hover:text-link-hover underline font-medium">${match.text}</a>`
+      
+      result = before + replacement + after
+      
+      // 처리된 인덱스 기록
+      for (let j = match.index; j < match.index + replacement.length; j++) {
+        processedIndices.add(j)
+      }
+    }
+  }
+  
+  return result
+}
+
