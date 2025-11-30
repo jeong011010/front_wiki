@@ -60,14 +60,14 @@ export async function GET(request: NextRequest) {
     // 카테고리 필터 추가
     let categoryIds: string[] | undefined
     if (category) {
-      const categoryRecord = await prisma.category.findFirst({
+      const categoryRecord = await withRetry(() => prisma.category.findFirst({
         where: {
           OR: [
             { slug: category },
             { name: category },
           ],
         },
-      })
+      }))
       if (categoryRecord) {
         if (includeSubcategories) {
           // 선택한 카테고리와 모든 하위 카테고리 ID 수집

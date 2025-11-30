@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma, withRetry } from '@/lib/prisma'
 import type { ApiErrorResponse } from '@/types'
 
 interface CategoryNode {
@@ -18,7 +18,7 @@ interface CategoryNode {
  */
 export async function GET() {
   try {
-    const categories = await prisma.category.findMany({
+    const categories = await withRetry(() => prisma.category.findMany({
       include: {
         _count: {
           select: {
@@ -31,7 +31,7 @@ export async function GET() {
         { order: 'asc' },
         { name: 'asc' },
       ],
-    })
+    }))
     
     // 계층 구조로 변환
     const categoryMap = new Map<string, CategoryNode>()

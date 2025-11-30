@@ -1,4 +1,4 @@
-'server-only'
+import 'server-only'
 
 /**
  * 글의 티어를 계산하는 함수
