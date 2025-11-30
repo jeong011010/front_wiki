@@ -42,6 +42,22 @@ export async function withRetry<T>(
   maxRetries = 3,
   delay = 1000
 ): Promise<T> {
+  // 로컬 개발 환경에서는 재시도 없이 바로 실행 (디버깅을 위해)
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      return await fn()
+    } catch (error) {
+      // 개발 환경에서는 상세 에러 정보 로깅
+      console.error('Prisma query error (development):', error)
+      if (error instanceof Error) {
+        console.error('Error message:', error.message)
+        console.error('Error stack:', error.stack)
+      }
+      throw error
+    }
+  }
+  
+  // 프로덕션 환경에서만 재시도 로직 적용
   let lastError: Error | undefined
   
   for (let i = 0; i < maxRetries; i++) {

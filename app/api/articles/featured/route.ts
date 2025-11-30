@@ -199,8 +199,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(articlesWithPreview)
   } catch (error) {
     console.error('Featured articles API error:', error)
+    // 개발 환경에서 상세 에러 정보 로깅
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error details:', error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      } : error)
+    }
     return NextResponse.json<ApiErrorResponse>(
-      { error: 'Failed to fetch featured articles' },
+      { 
+        error: 'Failed to fetch featured articles',
+        ...(process.env.NODE_ENV === 'development' && error instanceof Error && {
+          details: error.message,
+        }),
+      },
       { status: 500 }
     )
   }
