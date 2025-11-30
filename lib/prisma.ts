@@ -23,6 +23,17 @@ export const prisma =
         url: process.env.DATABASE_URL,
       },
     },
+    // 연결 풀 설정 (Supabase 최적화)
+    // connection_limit: 연결 풀 크기 (기본값: 10)
+    // pool_timeout: 연결 대기 시간 (초)
+    // connect_timeout: 연결 타임아웃 (초)
+    // query_timeout: 쿼리 타임아웃 (초)
+    // statement_cache_size: SQL 문 캐시 크기
+    // idle_in_transaction_session_timeout: 유휴 트랜잭션 타임아웃 (초)
+    // ...(process.env.DATABASE_URL?.includes('supabase') && {
+    //   // Supabase 전용 설정은 Prisma에서 직접 지원하지 않으므로
+    //   // DATABASE_URL에 파라미터를 추가하는 방식 사용
+    // }),
   })
 
 // 연결 재시도 헬퍼 함수

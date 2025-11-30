@@ -3,7 +3,7 @@ import { createVersionedCacheKey, getCache, isCacheAvailable, setCache } from '@
 import { incrementCacheVersion } from '@/lib/cache-version'
 import { obtainCardByAuthor } from '@/lib/card-system'
 import { detectKeywords, insertLinksInTitle } from '@/lib/link-detector'
-import { prisma } from '@/lib/prisma'
+import { prisma, withRetry } from '@/lib/prisma'
 import { calculateTier } from '@/lib/tier-calculator'
 import { slugify } from '@/lib/utils'
 import type { ApiErrorResponse, ArticleCreateResponse, ArticlesListResponse } from '@/types'
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-      })
+      }))
       
       // incomingLinks 개수로 정렬하고 limit/offset 적용
       const sortedArticles = allArticles
@@ -213,7 +213,7 @@ export async function GET(request: NextRequest) {
         orderBy = { createdAt: 'desc' }
       }
       
-      const articles = await prisma.article.findMany({
+      const articles = await withRetry(() => prisma.article.findMany({
         where,
         include: {
           category: {
@@ -241,7 +241,7 @@ export async function GET(request: NextRequest) {
         orderBy,
         take: limit,
         skip: offset,
-      })
+      }))
       
       // 미리보기 생성 및 제목에 링크 삽입
       const articlesWithPreview = await Promise.all(articles.map(async (article) => {

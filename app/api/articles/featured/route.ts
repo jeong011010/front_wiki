@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (sort === 'popular') {
       // 인기순: incomingLinks 개수가 많은 순
       // 모든 글을 가져와서 incomingLinks 개수로 정렬
-      const allArticles = await prisma.article.findMany({
+      const allArticles = await withRetry(() => prisma.article.findMany({
         where,
         include: {
           category: {
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-      })
+      }))
       
       // incomingLinks 개수로 정렬하고 limit 적용
       articles = allArticles
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
         }))
     } else {
       // 최신순: createdAt 기준
-      articles = await prisma.article.findMany({
+      articles = await withRetry(() => prisma.article.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-      })
+      }))
       
       // 필요한 필드만 추출
       articles = articles.map((article) => ({
