@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 
 interface ArticleCardProps {
   article: {
@@ -112,13 +112,12 @@ const tierStyles: Record<string, {
 }
 
 export default function ArticleCard({ article }: ArticleCardProps) {
-  // 티어 결정: API에서 계산된 tier가 있으면 사용, 없으면 카테고리 기반으로 결정
-  let tier: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' = 'general'
-  
-  if (article.tier) {
-    // API에서 계산된 티어 사용
-    tier = article.tier
-  } else {
+  // 티어 결정: API에서 계산된 tier가 있으면 사용, 없으면 카테고리 기반으로 결정 (메모이제이션)
+  const tier = useMemo((): 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' => {
+    if (article.tier) {
+      return article.tier
+    }
+    
     // 기존 카테고리 기반 티어 결정 (하위 호환성)
     let categoryKey = article.categorySlug || article.category || ''
     
@@ -140,10 +139,10 @@ export default function ArticleCard({ article }: ArticleCardProps) {
       categoryKey = nameToSlug[categoryName] || categoryName
     }
     
-    tier = (categoryKey && tierStyles[categoryKey]) ? categoryKey as typeof tier : 'general'
-  }
+    return (categoryKey && tierStyles[categoryKey]) ? categoryKey as typeof tier : 'general'
+  }, [article.tier, article.categorySlug, article.category])
   
-  const tierStyle = tierStyles[tier] || tierStyles.general
+  const tierStyle = useMemo(() => tierStyles[tier] || tierStyles.general, [tier])
 
   const [rotateX, setRotateX] = useState(0)
   const [rotateY, setRotateY] = useState(0)
@@ -679,9 +678,10 @@ export default function ArticleCard({ article }: ArticleCardProps) {
                 alt={article.title}
                 fill
                 className="object-cover z-10"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                quality={100}
+                sizes="200px"
+                quality={75}
                 priority={false}
+                loading="lazy"
               />
             </div>
             {/* 이미지 오버레이 그라데이션 */}

@@ -19,16 +19,7 @@ if (process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL) {
   console.warn('⚠️  DATABASE_URL is not set! Please check your .env or .env.local file.')
 }
 
-// Supabase 연결 문제 진단을 위한 로깅
-if (process.env.NODE_ENV === 'development' && process.env.DATABASE_URL) {
-  const dbUrl = process.env.DATABASE_URL
-  if (dbUrl.includes('supabase.com')) {
-    const hostMatch = dbUrl.match(/@([^:]+):(\d+)/)
-    if (hostMatch) {
-      console.log(`📊 Database: Supabase (${hostMatch[1]}:${hostMatch[2]})`)
-    }
-  }
-}
+// Supabase 연결 정보는 에러 발생 시에만 출력
 
 export const prisma =
   globalForPrisma.prisma ??

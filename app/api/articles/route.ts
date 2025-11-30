@@ -47,12 +47,8 @@ export async function GET(request: NextRequest) {
     if (cacheKey && isCacheAvailable() && process.env.NODE_ENV === 'production') {
       const cached = await getCache<ArticlesListResponse>(cacheKey)
       if (cached) {
-        console.log('[전체글 API] 캐시에서 반환:', cached.length, '개')
         return NextResponse.json<ArticlesListResponse>(cached)
       }
-      console.log('[전체글 API] 캐시 미스 - DB에서 조회')
-    } else if (cacheKey) {
-      console.log('[전체글 API] 캐시 사용 안 함 (개발 환경 또는 캐시 미설정)')
     }
     
     // 비회원 또는 일반 회원은 공개된 글만, 관리자는 모든 글
@@ -199,8 +195,6 @@ export async function GET(request: NextRequest) {
       }))
       
       // 디버깅: 조회된 글 목록 로그 (인기순)
-      console.log('[전체글 API - 인기순] 조회된 글 개수:', articlesWithPreview.length)
-      console.log('[전체글 API - 인기순] 조회된 글 ID 목록:', articlesWithPreview.map(a => ({ id: a.id, title: a.title })))
       
       // 캐시에 저장 (30분, 검색어가 없을 때만, 프로덕션에서만)
       if (cacheKey && isCacheAvailable() && process.env.NODE_ENV === 'production') {
@@ -290,8 +284,6 @@ export async function GET(request: NextRequest) {
       }))
       
       // 디버깅: 조회된 글 목록 로그 (최신순/제목순)
-      console.log('[전체글 API - 최신순/제목순] 조회된 글 개수:', articlesWithPreview.length)
-      console.log('[전체글 API - 최신순/제목순] 조회된 글 ID 목록:', articlesWithPreview.map(a => ({ id: a.id, title: a.title })))
       
       // 캐시에 저장 (30분, 검색어가 없을 때만, 프로덕션에서만)
       if (cacheKey && isCacheAvailable() && process.env.NODE_ENV === 'production') {
