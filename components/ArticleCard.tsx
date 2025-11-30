@@ -1,5 +1,7 @@
 'use client'
 
+import { getCurrentUser } from '@/lib/auth-client'
+import { apiDelete, apiGet, apiPost } from '@/lib/http'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
@@ -17,6 +19,8 @@ interface ArticleCardProps {
     preview?: string
     imageUrl?: string | null // 대표 이미지 URL (선택사항)
     tier?: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' // 계산된 티어 (선택사항)
+    views?: number // 조회수
+    likes?: number // 좋아요 수
     author?: {
       name: string
       email: string
@@ -139,6 +143,10 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   const [hasDragged, setHasDragged] = useState(false) // 실제로 드래그가 발생했는지 추적
   const [isMobile, setIsMobile] = useState(true)
   const [isScrolling, setIsScrolling] = useState(false) // 스크롤 모드인지 확인
+  const [likes, setLikes] = useState(article.likes || 0)
+  const [isLiked, setIsLiked] = useState(false)
+  const views = article.views || 0
+  const [isLiking, setIsLiking] = useState(false)
   const cardRef = useRef<HTMLAnchorElement>(null)
   const dragStartPos = useRef<{ x: number; y: number } | null>(null)
   const dragStartMousePos = useRef<{ x: number; y: number } | null>(null) // 드래그 시작 시 마우스 위치
@@ -151,6 +159,54 @@ export default function ArticleCard({ article }: ArticleCardProps) {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  // 좋아요 상태 조회
+  useEffect(() => {
+    const fetchLikeStatus = async () => {
+      try {
+        const data = await apiGet<{ likes: number; isLiked: boolean }>(`/api/articles/slug/${article.slug}/like`)
+        setLikes(data.likes)
+        setIsLiked(data.isLiked)
+      } catch {
+        // 에러는 무시 (비회원도 조회 가능)
+      }
+    }
+    fetchLikeStatus()
+  }, [article.slug])
+
+  // 좋아요 토글 핸들러
+  const handleLikeClick = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const user = await getCurrentUser()
+    if (!user) {
+      // 로그인 페이지로 리다이렉트
+      window.location.href = `/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`
+      return
+    }
+
+    if (isLiking) return
+    setIsLiking(true)
+
+    try {
+      if (isLiked) {
+        // 좋아요 제거
+        await apiDelete(`/api/articles/slug/${article.slug}/like`)
+        setLikes(prev => Math.max(0, prev - 1))
+        setIsLiked(false)
+      } else {
+        // 좋아요 추가
+        const data = await apiPost<{ success: boolean; likes: number }>(`/api/articles/slug/${article.slug}/like`, {})
+        setLikes(data.likes)
+        setIsLiked(true)
+      }
+    } catch (error) {
+      console.error('Failed to toggle like:', error)
+    } finally {
+      setIsLiking(false)
+    }
+  }
 
   // PC: 마우스 드래그 시작
   const handleMouseDown = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -752,20 +808,49 @@ export default function ArticleCard({ article }: ArticleCardProps) {
           className="flex items-center justify-between pt-2 border-t border-gray-200"
           style={{ transform: 'translateZ(0)' }}
         >
-          <div className="flex items-center gap-1">
-            <svg className="w-3 h-3 text-text-secondary" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-            </svg>
-            <span className="text-[10px] font-bold text-text-secondary">
-              {new Date(article.createdAt).toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-              })}
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <svg className="w-3 h-3 text-text-secondary" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+              </svg>
+              <span className="text-[10px] font-bold text-text-secondary">
+                {new Date(article.createdAt).toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </span>
+            </div>
+            {/* 좋아요 버튼 */}
+            <button
+              onClick={handleLikeClick}
+              disabled={isLiking}
+              className={`flex items-center gap-1 transition-colors ${
+                isLiked 
+                  ? 'text-red-500 hover:text-red-600' 
+                  : 'text-text-secondary hover:text-red-500'
+              }`}
+              style={{ transform: 'translateZ(0)' }}
+              title={isLiked ? '좋아요 취소' : '좋아요'}
+            >
+              <svg 
+                className={`w-3 h-3 ${isLiked ? 'fill-current' : ''}`} 
+                fill={isLiked ? 'currentColor' : 'none'} 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span className="text-[10px] font-bold">{likes.toLocaleString()}</span>
+            </button>
           </div>
-          <div className="text-[10px] font-bold text-text-tertiary">
-            #{article.id.slice(-4)}
+          {/* 조회수 (ID 대신) */}
+          <div className="flex items-center gap-1 text-[10px] font-bold text-text-tertiary">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span>{views.toLocaleString()}</span>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth-middleware'
-import { prisma } from '@/lib/prisma'
+import { prisma, withRetry } from '@/lib/prisma'
 import { insertLinksInTitle } from '@/lib/link-detector'
 import { calculateTier } from '@/lib/tier-calculator'
 
@@ -23,13 +23,21 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10)
     const offset = (page - 1) * limit
 
-    // 보유 카드 조회
+    // 보유 카드 조회 (연결 재시도 로직 포함)
     const [userCards, total] = await Promise.all([
-      prisma.userCard.findMany({
+      withRetry(() => prisma.userCard.findMany({
         where: { userId: user.id },
         include: {
           article: {
-            include: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              createdAt: true,
+              views: true,
+              likes: true,
+              commentsCount: true,
+              referencedCount: true,
               category: true,
               author: {
                 select: {
@@ -53,10 +61,10 @@ export async function GET(request: NextRequest) {
         },
         take: limit,
         skip: offset,
-      }),
-      prisma.userCard.count({
+      })),
+      withRetry(() => prisma.userCard.count({
         where: { userId: user.id },
-      }),
+      })),
     ])
 
     // 카드 데이터 포맷팅 및 제목에 링크 삽입
@@ -70,11 +78,15 @@ export async function GET(request: NextRequest) {
         // 에러 발생 시 원본 제목 사용
       }
       
-      // 티어 계산
+      // 티어 계산 (새 필드 포함)
       const tier = calculateTier({
         incomingLinksCount: userCard.article._count?.incomingLinks || 0,
         outgoingLinksCount: userCard.article._count?.outgoingLinks || 0,
         userCardsCount: userCard.article._count?.userCards || 0,
+        views: userCard.article.views || 0,
+        likes: userCard.article.likes || 0,
+        commentsCount: userCard.article.commentsCount || 0,
+        referencedCount: userCard.article.referencedCount || 0,
         createdAt: userCard.article.createdAt,
       })
       
@@ -100,6 +112,8 @@ export async function GET(request: NextRequest) {
             : null,
           createdAt: userCard.article.createdAt,
           tier, // 계산된 티어
+          views: userCard.article.views || 0,
+          likes: userCard.article.likes || 0,
         },
         obtainedAt: userCard.obtainedAt,
         obtainedBy: userCard.obtainedBy,
@@ -121,7 +135,7 @@ export async function GET(request: NextRequest) {
     const errorStack = error instanceof Error ? error.stack : undefined
     console.error('Error details:', { errorMessage, errorStack })
     return NextResponse.json(
-      { error: '보유 카드를 불러오는데 실패했습니다.', details: process.env.NODE_ENV === 'development' ? errorMessage : undefined },
+      { error: process.env.NODE_ENV === 'development' ? `보유 카드를 불러오는데 실패했습니다: ${errorMessage}` : '보유 카드를 불러오는데 실패했습니다.' },
       { status: 500 }
     )
   }
