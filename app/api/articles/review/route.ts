@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth-middleware'
+import { obtainCardByAuthor } from '@/lib/card-system'
 import { z } from 'zod'
 import type { ApiErrorResponse } from '@/types'
 
@@ -60,10 +61,36 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { articleId, status } = reviewSchema.parse(body)
     
+    // 기존 글 정보 조회 (작성자 확인용)
+    const existingArticle = await prisma.article.findUnique({
+      where: { id: articleId },
+      select: {
+        authorId: true,
+        status: true,
+      },
+    })
+    
+    if (!existingArticle) {
+      return NextResponse.json<ApiErrorResponse>(
+        { error: 'Article not found' },
+        { status: 404 }
+      )
+    }
+    
     const article = await prisma.article.update({
       where: { id: articleId },
       data: { status },
     })
+    
+    // 글 승인 시 (pending -> published) 카드 부여
+    if (status === 'published' && existingArticle.status === 'pending' && existingArticle.authorId) {
+      try {
+        await obtainCardByAuthor(existingArticle.authorId, articleId)
+      } catch (error) {
+        console.error('Error obtaining card on article approval:', error)
+        // 카드 부여 실패해도 글 승인은 성공으로 처리
+      }
+    }
     
     return NextResponse.json({ article })
   } catch (error) {

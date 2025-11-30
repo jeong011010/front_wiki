@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Input } from '@/components/ui'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useMemo, useState } from 'react'
 
 interface Category {
   id: string
@@ -327,28 +328,22 @@ export default function ArticleFilterBar({
   }
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-4 mb-6">
-      {/* 첫 번째 줄: 검색 바 */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="카테고리 전체에서 검색..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full px-4 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-        />
-      </div>
+    <div className="bg-surface border border-border rounded-lg p-1.5 sm:p-2 mb-2">
+        {/* 첫 번째 줄: 검색 바 */}
+        <div className="mb-1 sm:mb-1.5">
+          <Input
+            type="text"
+            placeholder="카테고리 전체에서 검색..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="h-10 sm:h-11 md:h-12 text-sm sm:text-base py-2 sm:py-2.5"
+          />
+        </div>
 
-      {/* 두 번째 줄: 필터 및 정렬 옵션 - 항상 고정 높이 */}
-      <div 
-        className="flex flex-wrap items-center gap-2"
-        style={{ 
-          minHeight: '2.75rem', // 버튼 높이 + gap 고정
-          height: 'auto'
-        }}
-      >
+      {/* 두 번째 줄: 필터 및 정렬 옵션 */}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-0.5 sm:gap-1 md:gap-1.5">
         {/* 대분류 버튼들 */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-0.5 sm:gap-1 md:gap-1.5 flex-1">
           <button
             onClick={() => {
               setSelectedMainCategory(null)
@@ -356,7 +351,7 @@ export default function ArticleFilterBar({
               setOpenDropdowns(new Set())
               setHoveredCategory(null)
             }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-1.5 sm:px-2 md:px-2.5 py-0.5 sm:py-1 md:py-1.5 rounded text-[10px] sm:text-xs font-medium transition-colors ${
               selectedMainCategory === null
                 ? 'bg-primary-500 text-white'
                 : 'bg-secondary-300 text-text-primary hover:bg-secondary-500'
@@ -368,15 +363,16 @@ export default function ArticleFilterBar({
             <div key={mainCat.id} className="relative">
               <button
                 onClick={() => handleMainCategoryClick(mainCat)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${
+                className={`px-1.5 sm:px-2 md:px-2.5 py-0.5 sm:py-1 md:py-1.5 rounded text-[10px] sm:text-xs font-medium transition-colors relative ${
                   selectedMainCategory?.id === mainCat.id
                     ? 'bg-primary-500 text-white'
                     : 'bg-secondary-300 text-text-primary hover:bg-secondary-500'
                 }`}
               >
-                {mainCat.name}
+                <span className="hidden sm:inline">{mainCat.name}</span>
+                <span className="sm:hidden">{mainCat.name.length > 4 ? mainCat.name.substring(0, 4) + '...' : mainCat.name}</span>
                 {mainCat.articleCount > 0 && (
-                  <span className={`ml-2 text-xs ${selectedMainCategory?.id === mainCat.id ? 'text-white/70' : 'text-text-tertiary'}`}>
+                  <span className={`ml-1 md:ml-2 text-xs ${selectedMainCategory?.id === mainCat.id ? 'text-white/70' : 'text-text-tertiary'}`}>
                     ({mainCat.articleCount})
                   </span>
                 )}
@@ -388,58 +384,62 @@ export default function ArticleFilterBar({
           ))}
         </div>
 
-        {/* 선택된 카테고리 표시 */}
-        {selectedCategory && selectedMainCategory && (
-          <div className="px-4 py-2 bg-secondary-300 text-text-primary rounded-lg text-sm font-medium">
-            {selectedCategoryName}
+        {/* 선택된 카테고리 및 옵션 */}
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* 선택된 카테고리 표시 */}
+          {selectedCategory && selectedMainCategory && (
+            <div className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-secondary-300 text-text-primary rounded text-[10px] sm:text-xs font-medium truncate max-w-[150px] sm:max-w-[200px] md:max-w-none">
+              {selectedCategoryName}
+            </div>
+          )}
+
+          {/* 하위 카테고리 포함 옵션 */}
+          {selectedCategory && (
+            <label className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-secondary-300 text-text-primary rounded cursor-pointer hover:bg-secondary-500 transition-colors whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={includeSubcategories}
+                onChange={(e) => onIncludeSubcategoriesChange(e.target.checked)}
+                className="w-2.5 sm:w-3 h-2.5 sm:h-3 text-primary-500 rounded focus:ring-primary-500"
+              />
+              <span className="text-[10px] sm:text-xs font-medium hidden sm:inline">하위 카테고리 포함</span>
+              <span className="text-[10px] sm:text-xs font-medium sm:hidden">하위 포함</span>
+            </label>
+          )}
+
+          {/* 정렬 선택 */}
+          <div className="flex gap-0.5 bg-secondary-300 rounded p-0.5 ml-auto sm:ml-0">
+            <button
+              onClick={() => onSortChange('recent')}
+              className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium transition-colors ${
+                sortBy === 'recent'
+                  ? 'bg-primary-500 text-white'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              최신순
+            </button>
+            <button
+              onClick={() => onSortChange('popular')}
+              className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium transition-colors ${
+                sortBy === 'popular'
+                  ? 'bg-primary-500 text-white'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              인기순
+            </button>
+            <button
+              onClick={() => onSortChange('title')}
+              className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium transition-colors ${
+                sortBy === 'title'
+                  ? 'bg-primary-500 text-white'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              제목순
+            </button>
           </div>
-        )}
-
-        {/* 하위 카테고리 포함 옵션 */}
-        {selectedCategory && (
-          <label className="flex items-center gap-2 px-4 py-2 bg-secondary-300 text-text-primary rounded-lg cursor-pointer hover:bg-secondary-500 transition-colors">
-            <input
-              type="checkbox"
-              checked={includeSubcategories}
-              onChange={(e) => onIncludeSubcategoriesChange(e.target.checked)}
-              className="w-4 h-4 text-primary-500 rounded focus:ring-primary-500"
-            />
-            <span className="text-sm font-medium">하위 카테고리 포함</span>
-          </label>
-        )}
-
-        {/* 정렬 선택 */}
-        <div className="flex gap-2 bg-secondary-300 rounded-lg p-1 ml-auto">
-          <button
-            onClick={() => onSortChange('recent')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              sortBy === 'recent'
-                ? 'bg-primary-500 text-white'
-                : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            최신순
-          </button>
-          <button
-            onClick={() => onSortChange('popular')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              sortBy === 'popular'
-                ? 'bg-primary-500 text-white'
-                : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            인기순
-          </button>
-          <button
-            onClick={() => onSortChange('title')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              sortBy === 'title'
-                ? 'bg-primary-500 text-white'
-                : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            제목순
-          </button>
         </div>
       </div>
     </div>

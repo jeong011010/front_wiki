@@ -1,23 +1,27 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
-import ArticleFilterBar from './ArticleFilterBar'
+import { ArticleCardSkeleton } from '@/components/ui'
+import { useEffect, useRef, useState } from 'react'
 import ArticleCard from './ArticleCard'
+import ArticleFilterBar from './ArticleFilterBar'
 import ArticleListModal from './ArticleListModal'
 
 interface Article {
   id: string
   title: string
+  titleWithLinks?: string // 링크가 포함된 제목 HTML (선택사항)
   slug: string
   category: string | null
   categorySlug?: string | null
   createdAt: string
   updatedAt: string
   preview?: string
+  author?: {
+    name: string
+    email: string
+  } | null
 }
 
-// 그리드 높이 계산: 카드 높이(240px) * 2행 + gap(1.5rem = 24px)
-const GRID_HEIGHT = 'calc(240px * 2 + 1.5rem)'
 
 export default function FilteredArticles() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -27,7 +31,7 @@ export default function FilteredArticles() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const gridRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let isCancelled = false
@@ -87,149 +91,114 @@ export default function FilteredArticles() {
     }
   }, [selectedCategory, sortBy, includeSubcategories, searchQuery])
 
-  // 항상 6개 슬롯을 유지 (빈 슬롯 포함) - 메모이제이션으로 불필요한 재계산 방지
-  // 로딩 중이어도 카드 슬롯은 유지하고, 스켈레톤은 오버레이로 표시
-  const displayItems = useMemo(() => {
-    if (articles.length > 0) {
-      return [
-        ...articles.map(article => ({ 
-          type: 'article' as const, 
-          id: article.id, 
-          article 
-        })),
-        ...Array(Math.max(0, 6 - articles.length)).fill(null).map((_, i) => ({ 
-          type: 'empty' as const, 
-          id: `empty-${i}` 
-        }))
-      ]
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -256, behavior: 'smooth' }) // 카드 너비(240px) + 패딩(8px*2) + gap(4px) = 260px, 약간 여유있게 256px
     }
-    
-    // articles가 없고 로딩 중이 아닐 때만 empty-state 표시
-    if (!loading) {
-      return [{ type: 'empty-state' as const, id: 'empty-state' }]
+  }
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 256, behavior: 'smooth' }) // 카드 너비(240px) + 패딩(8px*2) + gap(4px) = 260px, 약간 여유있게 256px
     }
-    
-    // 로딩 중일 때는 빈 슬롯 6개 (스켈레톤은 오버레이로 표시)
-    return Array(6).fill(null).map((_, i) => ({ 
-      type: 'empty' as const, 
-      id: `loading-slot-${i}` 
-    }))
-  }, [loading, articles])
+  }
 
   return (
     <section>
-      <ArticleFilterBar
-        selectedCategory={selectedCategory}
-        sortBy={sortBy}
-        includeSubcategories={includeSubcategories}
-        searchQuery={searchQuery}
-        onCategoryChange={setSelectedCategory}
-        onSortChange={setSortBy}
-        onIncludeSubcategoriesChange={setIncludeSubcategories}
-        onSearchChange={setSearchQuery}
-      />
-
-      {/* 고정 높이 그리드 - DOM 구조는 항상 동일 */}
-      <div 
-        ref={gridRef}
-        className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        style={{ 
-          minHeight: GRID_HEIGHT, 
-          height: GRID_HEIGHT,
-          contain: 'layout style paint'
-        }}
-      >
-        {/* 실제 카드 또는 빈 슬롯 - 항상 렌더링 */}
-        {displayItems.map((item) => {
-          if (item.type === 'article') {
-            return (
-              <div key={item.id} style={{ height: '240px' }}>
-                <ArticleCard article={item.article} />
-              </div>
-            )
-          }
-          
-          if (item.type === 'empty') {
-            return (
-              <div 
-                key={item.id} 
-                style={{ 
-                  height: '240px',
-                  contain: 'layout style'
-                }} 
-                aria-hidden="true" 
-              />
-            )
-          }
-          
-          // empty-state
-          return (
-            <div 
-              key={item.id}
-              className="col-span-full text-center bg-surface border border-border rounded-lg flex items-center justify-center"
-              style={{ height: GRID_HEIGHT }}
-            >
-              <p className="text-text-secondary">표시할 글이 없습니다.</p>
-            </div>
-          )
-        })}
-        
-        {/* 스켈레톤 오버레이 - 로딩 중일 때만 표시 */}
-        {loading && (
-          <div 
-            className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-none"
-            style={{ zIndex: 10 }}
-          >
-            {Array(6).fill(null).map((_, i) => (
-              <div 
-                key={`skeleton-overlay-${i}`}
-                className="bg-surface border border-border rounded-lg p-6 animate-pulse" 
-                style={{ 
-                  height: '240px', 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  contain: 'layout style'
-                }}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded flex-1" />
-                  <div className="ml-3 h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
-                </div>
-                <div className="flex-1 mb-4">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                </div>
-                <div className="flex items-center justify-between text-xs mt-auto">
-                  <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
-                  <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
+      <div className="mb-4">
+        <ArticleFilterBar
+          selectedCategory={selectedCategory}
+          sortBy={sortBy}
+          includeSubcategories={includeSubcategories}
+          searchQuery={searchQuery}
+          onCategoryChange={setSelectedCategory}
+          onSortChange={setSortBy}
+          onIncludeSubcategoriesChange={setIncludeSubcategories}
+          onSearchChange={setSearchQuery}
+        />
+        {/* 필터 결과 개수 표시 */}
+        {!loading && articles.length > 0 && (
+          <p className="text-[10px] sm:text-xs md:text-sm text-text-secondary mt-1 sm:mt-2 px-1 sm:px-2">
+            총 <span className="font-semibold text-text-primary">{articles.length}</span>개의 글이 있습니다.
+          </p>
         )}
       </div>
+
+      {/* 가로 스크롤 컨테이너 - FeaturedArticles와 동일한 스타일 */}
+      <div className="relative">
+        {/* 좌우 스크롤 버튼 (데스크톱, 3개 이상일 때) */}
+        {articles.length > 3 && (
+          <>
+            <button
+              onClick={scrollLeft}
+              className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 items-center justify-center bg-surface border border-border rounded-full shadow-lg hover:bg-surface-hover transition-colors"
+              aria-label="왼쪽으로 스크롤"
+            >
+              <svg className="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={scrollRight}
+              className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 items-center justify-center bg-surface border border-border rounded-full shadow-lg hover:bg-surface-hover transition-colors"
+              aria-label="오른쪽으로 스크롤"
+            >
+              <svg className="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
+
+        {/* 가로 스크롤 가능한 카드 컨테이너 */}
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto scrollbar-hide -mx-4 px-4"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            paddingTop: '60px', // 카드 회전 시 상단 잘림 방지
+            paddingBottom: '60px', // 카드 회전 시 하단 잘림 방지
+            marginTop: '-60px', // 상단 패딩으로 인한 레이아웃 시프트 보정
+            marginBottom: '-60px', // 하단 패딩으로 인한 레이아웃 시프트 보정
+          }}
+        >
+          <div className="flex gap-1 min-w-max">
+            {loading ? (
+              // 로딩 중 스켈레톤
+              Array(6).fill(null).map((_, i) => (
+                <div key={`skeleton-${i}`} className="flex-shrink-0" style={{ padding: '8px', boxSizing: 'border-box' }}>
+                  <ArticleCardSkeleton />
+                </div>
+              ))
+            ) : articles.length > 0 ? (
+              // 실제 카드
+              articles.map((article) => (
+                <div key={article.id} className="flex-shrink-0" style={{ padding: '8px', boxSizing: 'border-box' }}>
+                  <ArticleCard article={article} />
+                </div>
+              ))
+            ) : (
+              // 빈 상태
+              <div className="w-full text-center bg-surface border border-border rounded-lg py-12">
+                <p className="text-text-secondary">표시할 글이 없습니다.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
       
-      {/* 더보기 버튼 - 항상 고정 위치에 표시하여 레이아웃 시프트 방지 */}
-      <div 
-        className="flex justify-end mt-6"
-        style={{ 
-          height: '3.5rem', // 버튼 높이 + margin-top 고정
-          minHeight: '3.5rem'
-        }}
-      >
-        {!loading && articles.length > 0 ? (
+      {/* 더보기 버튼 - 동적 위치 */}
+      {!loading && articles.length > 0 && (
+        <div className="flex justify-end mt-4 md:mt-6">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-lg"
+            className="px-4 md:px-6 py-2 md:py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm md:text-base font-medium shadow-lg"
           >
             더보기 →
           </button>
-        ) : (
-          // 로딩 중이거나 표시할 글이 없을 때는 투명한 플레이스홀더
-          <div style={{ height: '3rem', width: '120px' }} aria-hidden="true" />
-        )}
-      </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <ArticleListModal

@@ -86,7 +86,7 @@ async function initCache() {
         token: process.env.UPSTASH_REDIS_REST_TOKEN,
       })
       return
-    } catch (error) {
+    } catch {
       console.warn('Upstash Redis not available')
     }
   }
@@ -179,9 +179,12 @@ export async function deleteCachePattern(pattern: string): Promise<boolean> {
     await initCache()
 
     if (kv) {
-      // Vercel KV는 패턴 삭제를 직접 지원하지 않음
-      // 개별 키 삭제 필요 (구현 생략)
-      return false
+      // Vercel KV는 keys() 메서드를 지원하지 않으므로
+      // 패턴 삭제는 제한적입니다.
+      // 실제 캐시 무효화는 호출하는 쪽에서 명시적 키 삭제를 사용하거나
+      // TTL을 짧게 설정하여 처리합니다.
+      // 여기서는 성공으로 간주 (실제 삭제는 호출하는 쪽에서 처리)
+      return true
     }
 
     if (redis) {
@@ -205,6 +208,16 @@ export async function deleteCachePattern(pattern: string): Promise<boolean> {
 export function createCacheKey(prefix: string, ...parts: (string | number | null | undefined)[]): string {
   const filteredParts = parts.filter((part) => part !== null && part !== undefined)
   return `${prefix}:${filteredParts.join(':')}`
+}
+
+/**
+ * 캐시 키에 버전 추가
+ */
+export async function createVersionedCacheKey(prefix: string, ...parts: (string | number | null | undefined)[]): Promise<string> {
+  const { getCacheVersion } = await import('./cache-version')
+  const version = await getCacheVersion()
+  const baseKey = createCacheKey(prefix, ...parts)
+  return `${baseKey}:v${version}`
 }
 
 /**

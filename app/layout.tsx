@@ -1,6 +1,8 @@
 import SentryInit from "@/components/SentryInit";
+import BottomNav from "@/components/BottomNav";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { ToastContainer } from "@/components/ui";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -63,6 +65,8 @@ export default function RootLayout({
       >
         <SentryInit />
         {children}
+        <BottomNav />
+        <ToastContainer />
         <Analytics />
         <SpeedInsights />
       </body>

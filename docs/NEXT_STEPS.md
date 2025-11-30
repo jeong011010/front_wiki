@@ -20,7 +20,7 @@
    **보안 레벨 설정**:
    - **Security** → **Settings**
    - **Security Level**: `Medium` 선택
-   - **Save** 클릭
+   - **Save** 클릭http://localhost:3000/articles/redux-vs-zustand
 
    **봇 차단 활성화**:
    - **Security** → **Bots**

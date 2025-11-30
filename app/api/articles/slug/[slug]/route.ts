@@ -121,10 +121,29 @@ export async function PUT(
       data: updateData,
     })
     
-    // 새 링크 감지 및 생성 (자동 링크는 "auto" 타입)
-    if (data.content) {
-      const detectedLinks = await detectKeywords(data.content)
-      const validLinks = detectedLinks.filter(link => link.articleId !== article.id)
+    // 새 링크 감지 및 생성 (제목과 내용 모두에서, 자동 링크는 "auto" 타입)
+    const textToDetect: string[] = []
+    if (data.title) textToDetect.push(data.title)
+    if (data.content) textToDetect.push(data.content)
+    
+    if (textToDetect.length > 0) {
+      // 제목과 내용 모두에서 키워드 감지
+      const detectedLinksArrays = await Promise.all(
+        textToDetect.map(text => detectKeywords(text))
+      )
+      
+      // 모든 결과를 합치고 중복 제거
+      const allLinks = detectedLinksArrays.flat()
+      const uniqueLinks = new Map<string, typeof allLinks[0]>()
+      
+      for (const link of allLinks) {
+        const key = `${link.articleId}-${link.keyword.toLowerCase()}`
+        if (!uniqueLinks.has(key)) {
+          uniqueLinks.set(key, link)
+        }
+      }
+      
+      const validLinks = Array.from(uniqueLinks.values()).filter(link => link.articleId !== article.id)
       
       if (validLinks.length > 0) {
         const linkPromises = validLinks.map((link) =>

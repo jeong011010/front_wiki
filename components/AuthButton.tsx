@@ -43,45 +43,48 @@ export default function AuthButton() {
 
   if (user) {
     return (
-      <div className="flex items-center gap-4">
-        <Link
-          href="/articles/new"
-          className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-all hover:shadow-md font-medium"
-        >
-          새 글 작성
-        </Link>
-        <span className="text-sm text-text-secondary">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-1.5 md:gap-4">
+        {/* 모바일: 버튼들을 가로로 배치 */}
+        <div className="flex flex-wrap gap-1.5 md:contents">
+          <Link
+            href="/articles/new"
+            className="flex-1 md:flex-none px-2.5 py-1.5 md:px-4 md:py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-all hover:shadow-md text-sm md:text-base font-medium text-center whitespace-nowrap"
+          >
+            새 글 작성
+          </Link>
+          {user.role === 'admin' && (
+            <Link
+              href="/admin/review"
+              className="flex-1 md:flex-none px-2.5 py-1.5 md:px-3 md:py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all text-sm font-medium text-center whitespace-nowrap"
+            >
+              검토
+            </Link>
+          )}
+          <button
+            onClick={handleLogout}
+            className="flex-1 md:flex-none px-2.5 py-1.5 md:px-4 md:py-2 bg-secondary-300 text-text-primary rounded-lg hover:bg-secondary-500 transition-all text-sm font-medium whitespace-nowrap"
+          >
+            로그아웃
+          </button>
+        </div>
+        <span className="text-xs md:text-sm text-text-secondary text-center md:text-left px-1.5 py-0.5 md:px-2 md:py-1">
           {user.name}님 ({user.role === 'admin' ? '관리자' : '회원'})
         </span>
-        {user.role === 'admin' && (
-          <Link
-            href="/admin/review"
-            className="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all text-sm font-medium"
-          >
-            검토
-          </Link>
-        )}
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 bg-secondary-300 text-text-primary rounded-lg hover:bg-secondary-500 transition-all text-sm font-medium"
-        >
-          로그아웃
-        </button>
       </div>
     )
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap md:flex-row gap-1.5 md:gap-2">
       <Link
         href="/auth/login"
-        className="px-4 py-2 bg-secondary-300 text-text-primary rounded-lg hover:bg-secondary-500 transition-all font-medium"
+        className="flex-1 md:flex-none px-2.5 py-1.5 md:px-4 md:py-2 bg-secondary-300 text-text-primary rounded-lg hover:bg-secondary-500 transition-all text-sm md:text-base font-medium text-center whitespace-nowrap"
       >
         로그인
       </Link>
       <Link
         href="/auth/register"
-        className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-all font-medium"
+        className="flex-1 md:flex-none px-2.5 py-1.5 md:px-4 md:py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-700 transition-all text-sm md:text-base font-medium text-center whitespace-nowrap"
       >
         회원가입
       </Link>

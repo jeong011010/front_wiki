@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "create-admin": "tsx scripts/create-admin.ts",
+    "seed": "tsx scripts/seed-data.ts",
     "postinstall": "bash scripts/prisma-generate.sh"
   },
   "dependencies": {

@@ -1,35 +1,39 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { ArticleCardSkeleton } from '@/components/ui'
+import { useEffect, useRef, useState } from 'react'
 import ArticleCard from './ArticleCard'
 
 interface Article {
   id: string
   title: string
+  titleWithLinks?: string // 링크가 포함된 제목 HTML (선택사항)
   slug: string
   category: string | null
   categorySlug?: string | null
   createdAt: string
   updatedAt: string
   preview?: string
+  author?: {
+    name: string
+    email: string
+  } | null
 }
-
-// 그리드 높이 계산: 카드 높이(240px) * 2행 + gap(1.5rem = 24px)
-// 5개 카드가 3열 그리드에서 2행을 차지
-const GRID_HEIGHT = 'calc(240px * 2 + 1.5rem)'
 
 export default function FeaturedArticles() {
   const [sort, setSort] = useState<'popular' | 'recent'>('recent')
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const fetchArticles = async () => {
       setLoading(true)
       try {
-        const response = await fetch(`/api/articles/featured?sort=${sort}&limit=5`)
+        const response = await fetch(`/api/articles/featured?sort=${sort}&limit=10`)
         if (response.ok) {
           const data = await response.json()
+          console.log('[추천글 API]', JSON.stringify(data, null, 2))
           setArticles(data)
         }
       } catch (error) {
@@ -42,43 +46,30 @@ export default function FeaturedArticles() {
     fetchArticles()
   }, [sort])
 
-  // 항상 5개 슬롯을 유지 (빈 슬롯 포함) - 메모이제이션으로 불필요한 재계산 방지
-  // 로딩 중이어도 카드 슬롯은 유지하고, 스켈레톤은 오버레이로 표시
-  const displayItems = useMemo(() => {
-    if (articles.length > 0) {
-      return [
-        ...articles.map(article => ({ 
-          type: 'article' as const, 
-          id: article.id, 
-          article 
-        })),
-        ...Array(Math.max(0, 5 - articles.length)).fill(null).map((_, i) => ({ 
-          type: 'empty' as const, 
-          id: `empty-${i}` 
-        }))
-      ]
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -256, behavior: 'smooth' }) // 카드 너비(240px) + 패딩(8px*2) + gap(4px) = 260px, 약간 여유있게 256px
     }
-    
-    // articles가 없고 로딩 중이 아닐 때만 empty-state 표시
-    if (!loading) {
-      return [{ type: 'empty-state' as const, id: 'empty-state' }]
+  }
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 256, behavior: 'smooth' }) // 카드 너비(240px) + 패딩(8px*2) + gap(4px) = 260px, 약간 여유있게 256px
     }
-    
-    // 로딩 중일 때는 빈 슬롯 5개 (스켈레톤은 오버레이로 표시)
-    return Array(5).fill(null).map((_, i) => ({ 
-      type: 'empty' as const, 
-      id: `loading-slot-${i}` 
-    }))
-  }, [loading, articles])
+  }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold text-text-primary">추천 글</h2>
-        <div className="flex gap-2 bg-surface border border-border rounded-lg p-1">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 relative z-10">
+        <h2 className="text-2xl md:text-3xl font-bold text-text-primary">추천 글</h2>
+        <div className="flex gap-2 bg-surface border border-border rounded-lg p-1 w-full sm:w-auto relative z-20">
           <button
-            onClick={() => setSort('recent')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setSort('recent')
+            }}
+            className={`flex-1 sm:flex-none px-3 md:px-4 py-2 rounded-md text-sm font-medium transition-colors relative z-30 ${
               sort === 'recent'
                 ? 'bg-primary-500 text-white'
                 : 'text-text-secondary hover:text-text-primary'
@@ -87,8 +78,12 @@ export default function FeaturedArticles() {
             최신순
           </button>
           <button
-            onClick={() => setSort('popular')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setSort('popular')
+            }}
+            className={`flex-1 sm:flex-none px-3 md:px-4 py-2 rounded-md text-sm font-medium transition-colors relative z-30 ${
               sort === 'popular'
                 ? 'bg-primary-500 text-white'
                 : 'text-text-secondary hover:text-text-primary'
@@ -99,84 +94,68 @@ export default function FeaturedArticles() {
         </div>
       </div>
 
-      {/* 고정 높이 그리드 - DOM 구조는 항상 동일 */}
-      <div 
-        className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        style={{ 
-          minHeight: GRID_HEIGHT, 
-          height: GRID_HEIGHT,
-          contain: 'layout style paint'
-        }}
-      >
-        {/* 실제 카드 또는 빈 슬롯 - 항상 렌더링 */}
-        {displayItems.map((item) => {
-          if (item.type === 'article') {
-            return (
-              <div key={item.id} style={{ height: '240px' }}>
-                <ArticleCard article={item.article} />
-              </div>
-            )
-          }
-          
-          if (item.type === 'empty') {
-            return (
-              <div 
-                key={item.id} 
-                style={{ 
-                  height: '240px',
-                  contain: 'layout style'
-                }} 
-                aria-hidden="true" 
-              />
-            )
-          }
-          
-          // empty-state
-          return (
-            <div 
-              key={item.id}
-              className="col-span-full text-center bg-surface border border-border rounded-lg flex items-center justify-center"
-              style={{ height: GRID_HEIGHT }}
+      {/* 가로 스크롤 컨테이너 */}
+      <div className="relative">
+        {/* 좌우 스크롤 버튼 (데스크톱) */}
+        {articles.length > 3 && (
+          <>
+            <button
+              onClick={scrollLeft}
+              className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 items-center justify-center bg-surface border border-border rounded-full shadow-lg hover:bg-surface-hover transition-colors"
+              aria-label="왼쪽으로 스크롤"
             >
-              <p className="text-text-secondary">표시할 글이 없습니다.</p>
-            </div>
-          )
-        })}
-        
-        {/* 스켈레톤 오버레이 - 로딩 중일 때만 표시 */}
-        {loading && (
-          <div 
-            className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-none"
-            style={{ zIndex: 10 }}
-          >
-            {Array(5).fill(null).map((_, i) => (
-              <div 
-                key={`skeleton-overlay-${i}`}
-                className="bg-surface border border-border rounded-lg p-6 animate-pulse" 
-                style={{ 
-                  height: '240px', 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  contain: 'layout style'
-                }}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded flex-1" />
-                  <div className="ml-3 h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
-                </div>
-                <div className="flex-1 mb-4">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                </div>
-                <div className="flex items-center justify-between text-xs mt-auto">
-                  <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
-                  <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
+              <svg className="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={scrollRight}
+              className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 items-center justify-center bg-surface border border-border rounded-full shadow-lg hover:bg-surface-hover transition-colors"
+              aria-label="오른쪽으로 스크롤"
+            >
+              <svg className="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
         )}
+
+        {/* 가로 스크롤 가능한 카드 컨테이너 */}
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto scrollbar-hide -mx-4 px-4"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            paddingTop: '60px', // 카드 회전 시 상단 잘림 방지
+            paddingBottom: '60px', // 카드 회전 시 하단 잘림 방지
+            marginTop: '-60px', // 상단 패딩으로 인한 레이아웃 시프트 보정
+            marginBottom: '-60px', // 하단 패딩으로 인한 레이아웃 시프트 보정
+          }}
+        >
+          <div className="flex gap-1 min-w-max">
+            {loading ? (
+              // 로딩 중 스켈레톤
+              Array(5).fill(null).map((_, i) => (
+                <div key={`skeleton-${i}`} className="flex-shrink-0" style={{ padding: '8px', boxSizing: 'border-box' }}>
+                  <ArticleCardSkeleton />
+                </div>
+              ))
+            ) : articles.length > 0 ? (
+              // 실제 카드
+              articles.map((article) => (
+                <div key={article.id} className="flex-shrink-0" style={{ padding: '8px', boxSizing: 'border-box' }}>
+                  <ArticleCard article={article} />
+                </div>
+              ))
+            ) : (
+              // 빈 상태
+              <div className="w-full text-center bg-surface border border-border rounded-lg py-12">
+                <p className="text-text-secondary">표시할 글이 없습니다.</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
