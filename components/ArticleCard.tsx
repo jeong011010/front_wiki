@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 interface ArticleCardProps {
   article: {
@@ -112,37 +112,25 @@ const tierStyles: Record<string, {
 }
 
 export default function ArticleCard({ article }: ArticleCardProps) {
-  // 티어 결정: API에서 계산된 tier가 있으면 사용, 없으면 카테고리 기반으로 결정 (메모이제이션)
-  const tier = useMemo((): 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' => {
-    if (article.tier) {
-      return article.tier
-    }
-    
-    // 기존 카테고리 기반 티어 결정 (하위 호환성)
-    let categoryKey = article.categorySlug || article.category || ''
-    
-    // categoryKey를 소문자로 변환하여 매칭 (대소문자 구분 없이)
-    if (categoryKey) {
-      categoryKey = categoryKey.toLowerCase()
-    }
-    
-    // 카테고리 이름에서 slug 추출 시도 (한글 이름인 경우)
-    if (!categoryKey && article.category) {
-      const categoryName = article.category.toLowerCase()
-      const nameToSlug: Record<string, string> = {
-        '프론트엔드': 'frontend',
-        '백엔드': 'backend',
-        '클라우드': 'cloud',
-        'devops': 'devops',
-        '일반': 'general',
+  // 티어 결정: API에서 계산된 tier가 있으면 사용, 없으면 카테고리 기반으로 결정
+  const tier: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' = 
+    article.tier || 
+    (() => {
+      let categoryKey = (article.categorySlug || article.category || '').toLowerCase()
+      if (!categoryKey && article.category) {
+        const nameToSlug: Record<string, string> = {
+          '프론트엔드': 'frontend',
+          '백엔드': 'backend',
+          '클라우드': 'cloud',
+          'devops': 'devops',
+          '일반': 'general',
+        }
+        categoryKey = nameToSlug[article.category.toLowerCase()] || categoryKey
       }
-      categoryKey = nameToSlug[categoryName] || categoryName
-    }
-    
-    return (categoryKey && tierStyles[categoryKey]) ? categoryKey as typeof tier : 'general'
-  }, [article.tier, article.categorySlug, article.category])
+      return (categoryKey && tierStyles[categoryKey]) ? categoryKey as typeof tier : 'general'
+    })()
   
-  const tierStyle = useMemo(() => tierStyles[tier] || tierStyles.general, [tier])
+  const tierStyle = tierStyles[tier] || tierStyles.general
 
   const [rotateX, setRotateX] = useState(0)
   const [rotateY, setRotateY] = useState(0)
