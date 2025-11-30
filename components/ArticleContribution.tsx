@@ -174,11 +174,12 @@ export default function ArticleContribution({
     }
 
     document.addEventListener('selectionchange', handleSelection)
-    previewRef.current?.addEventListener('click', handleClick)
+    const previewElement = previewRef.current
+    previewElement?.addEventListener('click', handleClick)
     
     return () => {
       document.removeEventListener('selectionchange', handleSelection)
-      previewRef.current?.removeEventListener('click', handleClick)
+      previewElement?.removeEventListener('click', handleClick)
     }
   }, [viewMode, articleContent, contributionType])
 
@@ -309,7 +310,6 @@ export default function ArticleContribution({
 
   // 편집된 내용의 HTML 미리보기
   const editedHtmlContent = marked(editedContent) as string
-  const originalHtmlContent = marked(articleContent) as string
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -462,7 +462,7 @@ export default function ArticleContribution({
                       ✓ 선택된 텍스트 (위치: {selectionStart !== null ? `${selectionStart}~${selectionEnd}` : '알 수 없음'})
                     </p>
                     <p className="text-sm text-text-primary font-medium bg-white dark:bg-gray-800 p-3 rounded border border-yellow-300 dark:border-yellow-700">
-                      "{selectedText}"
+                      &quot;{selectedText}&quot;
                     </p>
                   </>
                 )}

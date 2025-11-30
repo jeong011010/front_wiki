@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { marked } from 'marked'
-import { diffLines, diffWords, Change } from 'diff'
+import { diffLines } from 'diff'
 import 'github-markdown-css/github-markdown.css'
 import { apiGet, apiPut } from '@/lib/http'
 
@@ -33,12 +33,30 @@ interface Contribution {
   } | null
 }
 
+// 기여 데이터 타입
+interface ContributionData {
+  type: string
+  newContent?: string
+  newText?: string
+  originalText?: string
+  originalContent?: string
+  comment?: string
+  targetText?: string
+  position?: {
+    at?: number
+    after?: number
+    start?: number
+    end?: number
+  }
+  description?: string
+}
+
 // Diff 뷰 컴포넌트
 function DiffView({ original, modified, type, contributionData }: {
   original: string
   modified: string
   type: string
-  contributionData: any
+  contributionData: ContributionData
 }) {
   if (type === 'update' || type === 'correction' || type === 'improvement' || type === 'other') {
     // 전체 내용 수정 - 라인별 diff
@@ -122,7 +140,6 @@ function DiffView({ original, modified, type, contributionData }: {
 
     // 전체 내용을 라인으로 분할
     const fullText = beforeText + addedText + afterText
-    const originalLines = original.split('\n')
     const fullLines = fullText.split('\n')
     
     // 추가 시작 라인 찾기
@@ -177,9 +194,6 @@ function DiffView({ original, modified, type, contributionData }: {
     }
 
     const { start, end } = position
-    const beforeText = original.substring(0, start)
-    const targetText = original.substring(start, end)
-    const afterText = original.substring(end)
     const commentText = contributionData.comment || ''
 
     // 라인별로 분할하여 표시
