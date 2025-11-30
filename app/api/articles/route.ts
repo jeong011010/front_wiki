@@ -157,8 +157,14 @@ export async function GET(request: NextRequest) {
           .substring(0, 150)
           .trim()
         
-        // 제목에 링크 삽입 (자기 자신 제외)
-        const titleWithLinks = await insertLinksInTitle(article.title, article.id)
+        // 제목에 링크 삽입 (자기 자신 제외) - 에러 발생 시 원본 제목 사용
+        let titleWithLinks = article.title
+        try {
+          titleWithLinks = await insertLinksInTitle(article.title, article.id)
+        } catch (error) {
+          console.error('Error inserting links in title:', error)
+          // 에러 발생 시 원본 제목 사용
+        }
         
         return {
           id: article.id,
@@ -226,8 +232,14 @@ export async function GET(request: NextRequest) {
           .substring(0, 150)
           .trim()
         
-        // 제목에 링크 삽입 (자기 자신 제외)
-        const titleWithLinks = await insertLinksInTitle(article.title, article.id)
+        // 제목에 링크 삽입 (자기 자신 제외) - 에러 발생 시 원본 제목 사용
+        let titleWithLinks = article.title
+        try {
+          titleWithLinks = await insertLinksInTitle(article.title, article.id)
+        } catch (error) {
+          console.error('Error inserting links in title:', error)
+          // 에러 발생 시 원본 제목 사용
+        }
         
         return {
           id: article.id,
