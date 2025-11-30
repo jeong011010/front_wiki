@@ -119,39 +119,31 @@ export async function GET(request: NextRequest) {
               email: true,
             },
           },
+          _count: {
+            select: {
+              incomingLinks: true,
+              outgoingLinks: true,
+              userCards: true,
+            },
+          },
         },
       })
       
-      // 필요한 필드만 추출 (통계 정보 포함)
-      articles = await Promise.all(articles.map(async (article) => {
-        const counts = await prisma.article.findUnique({
-          where: { id: article.id },
-          select: {
-            _count: {
-              select: {
-                incomingLinks: true,
-                outgoingLinks: true,
-                userCards: true,
-              },
-            },
-          },
-        })
-        
-        return {
-          id: article.id,
-          title: article.title,
-          slug: article.slug,
-          category: article.category ? article.category.name : null,
-          categorySlug: article.category ? article.category.slug : null,
-          createdAt: article.createdAt,
-          updatedAt: article.updatedAt,
-          content: article.content,
-          _count: counts?._count || { incomingLinks: 0, outgoingLinks: 0, userCards: 0 },
-          author: article.author ? {
-            name: article.author.name,
-            email: article.author.email,
-          } : null,
-        }
+      // 필요한 필드만 추출
+      articles = articles.map((article) => ({
+        id: article.id,
+        title: article.title,
+        slug: article.slug,
+        category: article.category ? article.category.name : null,
+        categorySlug: article.category ? article.category.slug : null,
+        createdAt: article.createdAt,
+        updatedAt: article.updatedAt,
+        content: article.content,
+        _count: article._count,
+        author: article.author ? {
+          name: article.author.name,
+          email: article.author.email,
+        } : null,
       }))
     }
     
