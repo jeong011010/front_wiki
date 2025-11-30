@@ -235,7 +235,7 @@ export default function MyPage() {
               <p className="text-sm text-text-tertiary">글을 작성하거나 카드를 뽑아보세요!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
               {cards.map((userCard) => (
                 <div key={userCard.id} className="relative">
                   <ArticleCard
@@ -258,7 +258,7 @@ export default function MyPage() {
                   />
                   {/* 획득 방법 배지 */}
                   <div className="absolute top-2 right-2 z-50">
-                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+                    <span className={`px-2 py-1 text-xs font-bold rounded-full shadow-md ${
                       userCard.obtainedBy === 'author'
                         ? 'bg-blue-500 text-white'
                         : userCard.obtainedBy === 'draw'
