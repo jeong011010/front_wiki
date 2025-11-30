@@ -490,7 +490,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
         transition: isDragging ? 'box-shadow 0.2s ease-out' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             boxShadow: getBoxShadow(),
             width: '200px',
-            height: '280px',
+            height: '300px',
             cursor: isDragging ? 'grabbing' : 'grab',
         willChange: 'transform',
         WebkitFontSmoothing: 'antialiased',
@@ -650,7 +650,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
           willChange: 'transform',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
-          height: '100px', // 고정 높이로 변경
+          height: '120px', // 고정 높이로 변경
         }}
       >
         {article.imageUrl ? (
