@@ -54,22 +54,21 @@ export async function withRetry<T>(
     try {
       return await fn()
     } catch (error) {
-      // 개발 환경에서는 상세 에러 정보 로깅
-      console.error('❌ Prisma query error (development):', error)
-      if (error instanceof Error) {
-        console.error('Error message:', error.message)
-        console.error('Error stack:', error.stack)
+      // 개발 환경에서는 첫 번째 에러만 로깅 (중복 로그 방지)
+      if (!(globalThis as { _prismaErrorLogged?: boolean })._prismaErrorLogged) {
+        (globalThis as { _prismaErrorLogged?: boolean })._prismaErrorLogged = true
         
-        // Supabase 연결 문제인 경우 추가 정보 제공
-        if (error.message.includes("Can't reach database server")) {
-          console.error('')
-          console.error('🔍 Supabase 연결 문제 진단:')
-          console.error('  1. Supabase 프로젝트가 일시 중지되었을 수 있습니다 (무료 플랜)')
-          console.error('  2. Supabase 대시보드에서 프로젝트 상태를 확인하세요')
-          console.error('  3. 네트워크/방화벽 문제일 수 있습니다')
-          console.error('  4. 배포 환경에서는 캐시로 인해 정상 작동할 수 있습니다')
-          console.error('')
+        if (error instanceof Error) {
+          // Supabase 연결 문제인 경우만 간단히 로깅
+          if (error.message.includes("Can't reach database server")) {
+            console.error('⚠️  Supabase 연결 실패 - 캐시된 데이터 사용 또는 원본 반환')
+          }
         }
+        
+        // 5초 후 플래그 리셋 (같은 에러가 계속 발생해도 주기적으로 알림)
+        setTimeout(() => {
+          (globalThis as { _prismaErrorLogged?: boolean })._prismaErrorLogged = false
+        }, 5000)
       }
       throw error
     }

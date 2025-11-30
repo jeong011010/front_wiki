@@ -155,15 +155,7 @@ export async function GET(request: NextRequest) {
         .trim()
       
       // 제목에 링크 삽입 (자기 자신 제외) - 에러 발생 시 원본 제목 사용
-      let titleWithLinks = article.title
-      try {
-        titleWithLinks = await insertLinksInTitle(article.title, article.id)
-      } catch (error) {
-        // 에러 발생 시 원본 제목 사용 (로그는 개발 환경에서만)
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error inserting links in title:', error)
-        }
-      }
+      const titleWithLinks = await insertLinksInTitle(article.title, article.id)
       
       // 티어 계산
       const tier = calculateTier({
