@@ -72,10 +72,10 @@ export async function GET(request: NextRequest) {
         if (includeSubcategories) {
           // 선택한 카테고리와 모든 하위 카테고리 ID 수집
           const getAllDescendantIds = async (parentId: string): Promise<string[]> => {
-            const children = await prisma.category.findMany({
+            const children = await withRetry(() => prisma.category.findMany({
               where: { parentId },
               select: { id: true },
-            })
+            }))
             const ids = [parentId]
             for (const child of children) {
               const descendantIds = await getAllDescendantIds(child.id)
