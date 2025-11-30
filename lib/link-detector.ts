@@ -263,5 +263,9 @@ export async function insertLinksInTitle(title: string, excludeArticleId?: strin
   }
   
   return result
+  } catch (error) {
+    // DB 연결 실패 등 에러 발생 시 원본 제목 반환 (로그 없이 조용히 처리)
+    return title
+  }
 }
 
