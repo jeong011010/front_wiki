@@ -24,7 +24,7 @@ if (process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL) {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    log: [], // Prisma 로그 비활성화 (에러는 try-catch로 처리)
     datasources: {
       db: {
         url: process.env.DATABASE_URL,

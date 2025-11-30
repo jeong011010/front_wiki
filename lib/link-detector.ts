@@ -1,5 +1,5 @@
 import 'server-only'
-import { prisma } from './prisma'
+import { prisma, withRetry } from './prisma'
 import type { DetectedLink } from '@/types'
 import { escapeRegex } from './regex-utils'
 
@@ -7,14 +7,14 @@ import { escapeRegex } from './regex-utils'
  * 텍스트에서 기존 글의 제목과 매칭되는 키워드를 찾아 링크 정보를 반환
  */
 export async function detectKeywords(text: string): Promise<DetectedLink[]> {
-  // 모든 글의 제목을 가져옴
-  const articles = await prisma.article.findMany({
+  // 모든 글의 제목을 가져옴 (재시도 로직 적용)
+  const articles = await withRetry(() => prisma.article.findMany({
     select: {
       id: true,
       title: true,
       slug: true,
     },
-  })
+  }))
 
   const matches: DetectedLink[] = []
   const processed = new Set<string>() // 중복 방지
