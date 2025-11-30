@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma, withRetry } from '@/lib/prisma'
 import { authenticateToken } from '@/lib/auth-middleware'
 import { getCache, setCache, createVersionedCacheKey, isCacheAvailable } from '@/lib/cache'
 import { insertLinksInTitle } from '@/lib/link-detector'
