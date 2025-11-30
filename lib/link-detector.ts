@@ -1,20 +1,54 @@
 import 'server-only'
-import { prisma } from './prisma'
+import { prisma, withRetry } from './prisma'
 import type { DetectedLink } from '@/types'
 import { escapeRegex } from './regex-utils'
+
+// detectKeywords 결과 캐싱 (메모리 캐시)
+let cachedArticles: Array<{ id: string; title: string; slug: string }> | null = null
+let cacheTimestamp = 0
+const CACHE_TTL = 60000 // 1분
+
+/**
+ * 모든 글의 제목을 가져옴 (캐싱 적용)
+ */
+async function getAllArticleTitles(): Promise<Array<{ id: string; title: string; slug: string }>> {
+  const now = Date.now()
+  
+  // 캐시가 유효하면 재사용
+  if (cachedArticles && (now - cacheTimestamp) < CACHE_TTL) {
+    return cachedArticles
+  }
+  
+  try {
+    // 모든 글의 제목을 가져옴 (재시도 로직 적용)
+    const articles = await withRetry(() => prisma.article.findMany({
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+      },
+    }))
+    
+    // 캐시 업데이트
+    cachedArticles = articles
+    cacheTimestamp = now
+    return articles
+  } catch (error) {
+    // DB 연결 실패 시 캐시된 데이터가 있으면 사용
+    if (cachedArticles) {
+      return cachedArticles
+    }
+    // 캐시도 없으면 빈 배열 반환
+    return []
+  }
+}
 
 /**
  * 텍스트에서 기존 글의 제목과 매칭되는 키워드를 찾아 링크 정보를 반환
  */
 export async function detectKeywords(text: string): Promise<DetectedLink[]> {
-  // 모든 글의 제목을 가져옴
-  const articles = await prisma.article.findMany({
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-    },
-  })
+  // 캐싱된 글 목록 사용
+  const articles = await getAllArticleTitles()
 
   const matches: DetectedLink[] = []
   const processed = new Set<string>() // 중복 방지
@@ -175,8 +209,9 @@ export function insertLinks(
  * 제목은 짧고 단순하므로 간단한 로직 사용
  */
 export async function insertLinksInTitle(title: string, excludeArticleId?: string): Promise<string> {
-  // 자기 자신은 제외하고 다른 글의 제목만 매칭
-  const detectedLinks = await detectKeywords(title)
+  try {
+    // 자기 자신은 제외하고 다른 글의 제목만 매칭
+    const detectedLinks = await detectKeywords(title)
   const filteredLinks = excludeArticleId
     ? detectedLinks.filter(link => link.articleId !== excludeArticleId)
     : detectedLinks
@@ -262,5 +297,9 @@ export async function insertLinksInTitle(title: string, excludeArticleId?: strin
   }
   
   return result
+  } catch (error) {
+    // DB 연결 실패 등 에러 발생 시 원본 제목 반환 (로그 없이 조용히 처리)
+    return title
+  }
 }
 

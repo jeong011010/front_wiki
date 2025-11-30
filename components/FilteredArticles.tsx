@@ -16,6 +16,7 @@ interface Article {
   createdAt: string
   updatedAt: string
   preview?: string
+  tier?: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' // 계산된 티어 (선택사항)
   author?: {
     name: string
     email: string

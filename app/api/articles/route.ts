@@ -3,7 +3,8 @@ import { createVersionedCacheKey, getCache, isCacheAvailable, setCache } from '@
 import { incrementCacheVersion } from '@/lib/cache-version'
 import { obtainCardByAuthor } from '@/lib/card-system'
 import { detectKeywords, insertLinksInTitle } from '@/lib/link-detector'
-import { prisma } from '@/lib/prisma'
+import { prisma, withRetry } from '@/lib/prisma'
+import { calculateTier } from '@/lib/tier-calculator'
 import { slugify } from '@/lib/utils'
 import type { ApiErrorResponse, ArticleCreateResponse, ArticlesListResponse } from '@/types'
 import type { Prisma } from '@prisma/client'
@@ -46,7 +47,6 @@ export async function GET(request: NextRequest) {
     if (cacheKey && isCacheAvailable() && process.env.NODE_ENV === 'production') {
       const cached = await getCache<ArticlesListResponse>(cacheKey)
       if (cached) {
-        console.log('[전체글 API] 캐시에서 반환:', cached.length, '개')
         return NextResponse.json<ArticlesListResponse>(cached)
       }
     }
@@ -59,22 +59,22 @@ export async function GET(request: NextRequest) {
     // 카테고리 필터 추가
     let categoryIds: string[] | undefined
     if (category) {
-      const categoryRecord = await prisma.category.findFirst({
+      const categoryRecord = await withRetry(() => prisma.category.findFirst({
         where: {
           OR: [
             { slug: category },
             { name: category },
           ],
         },
-      })
+      }))
       if (categoryRecord) {
         if (includeSubcategories) {
           // 선택한 카테고리와 모든 하위 카테고리 ID 수집
           const getAllDescendantIds = async (parentId: string): Promise<string[]> => {
-            const children = await prisma.category.findMany({
+            const children = await withRetry(() => prisma.category.findMany({
               where: { parentId },
               select: { id: true },
-            })
+            }))
             const ids = [parentId]
             for (const child of children) {
               const descendantIds = await getAllDescendantIds(child.id)
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     if (sort === 'popular') {
       // 인기순: incomingLinks 개수가 많은 순
       // 모든 글을 가져와서 incomingLinks 개수로 정렬
-      const allArticles = await prisma.article.findMany({
+      const allArticles = await withRetry(() => prisma.article.findMany({
         where,
         include: {
           category: {
@@ -132,10 +132,12 @@ export async function GET(request: NextRequest) {
           _count: {
             select: {
               incomingLinks: true,
+              outgoingLinks: true,
+              userCards: true,
             },
           },
         },
-      })
+      }))
       
       // incomingLinks 개수로 정렬하고 limit/offset 적용
       const sortedArticles = allArticles
@@ -157,8 +159,16 @@ export async function GET(request: NextRequest) {
           .substring(0, 150)
           .trim()
         
-        // 제목에 링크 삽입 (자기 자신 제외)
+        // 제목에 링크 삽입 (자기 자신 제외) - 에러 발생 시 원본 제목 사용
         const titleWithLinks = await insertLinksInTitle(article.title, article.id)
+        
+        // 티어 계산
+        const tier = calculateTier({
+          incomingLinksCount: article._count.incomingLinks,
+          outgoingLinksCount: article._count.outgoingLinks,
+          userCardsCount: article._count.userCards,
+          createdAt: article.createdAt,
+        })
         
         return {
           id: article.id,
@@ -170,6 +180,7 @@ export async function GET(request: NextRequest) {
           createdAt: article.createdAt,
           updatedAt: article.updatedAt,
           preview,
+          tier, // 계산된 티어
           author: article.author ? {
             name: article.author.name,
             email: article.author.email,
@@ -178,8 +189,6 @@ export async function GET(request: NextRequest) {
       }))
       
       // 디버깅: 조회된 글 목록 로그 (인기순)
-      console.log('[전체글 API - 인기순] 조회된 글 개수:', articlesWithPreview.length)
-      console.log('[전체글 API - 인기순] 조회된 글 ID 목록:', articlesWithPreview.map(a => ({ id: a.id, title: a.title })))
       
       // 캐시에 저장 (30분, 검색어가 없을 때만, 프로덕션에서만)
       if (cacheKey && isCacheAvailable() && process.env.NODE_ENV === 'production') {
@@ -195,7 +204,7 @@ export async function GET(request: NextRequest) {
         orderBy = { createdAt: 'desc' }
       }
       
-      const articles = await prisma.article.findMany({
+      const articles = await withRetry(() => prisma.article.findMany({
         where,
         include: {
           category: {
@@ -212,11 +221,18 @@ export async function GET(request: NextRequest) {
               email: true,
             },
           },
+          _count: {
+            select: {
+              incomingLinks: true,
+              outgoingLinks: true,
+              userCards: true,
+            },
+          },
         },
         orderBy,
         take: limit,
         skip: offset,
-      })
+      }))
       
       // 미리보기 생성 및 제목에 링크 삽입
       const articlesWithPreview = await Promise.all(articles.map(async (article) => {
@@ -226,8 +242,16 @@ export async function GET(request: NextRequest) {
           .substring(0, 150)
           .trim()
         
-        // 제목에 링크 삽입 (자기 자신 제외)
+        // 제목에 링크 삽입 (자기 자신 제외) - 에러 발생 시 원본 제목 사용
         const titleWithLinks = await insertLinksInTitle(article.title, article.id)
+        
+        // 티어 계산
+        const tier = calculateTier({
+          incomingLinksCount: article._count.incomingLinks,
+          outgoingLinksCount: article._count.outgoingLinks,
+          userCardsCount: article._count.userCards,
+          createdAt: article.createdAt,
+        })
         
         return {
           id: article.id,
@@ -239,6 +263,7 @@ export async function GET(request: NextRequest) {
           createdAt: article.createdAt,
           updatedAt: article.updatedAt,
           preview,
+          tier, // 계산된 티어
           author: article.author ? {
             name: article.author.name,
             email: article.author.email,
@@ -247,8 +272,6 @@ export async function GET(request: NextRequest) {
       }))
       
       // 디버깅: 조회된 글 목록 로그 (최신순/제목순)
-      console.log('[전체글 API - 최신순/제목순] 조회된 글 개수:', articlesWithPreview.length)
-      console.log('[전체글 API - 최신순/제목순] 조회된 글 ID 목록:', articlesWithPreview.map(a => ({ id: a.id, title: a.title })))
       
       // 캐시에 저장 (30분, 검색어가 없을 때만, 프로덕션에서만)
       if (cacheKey && isCacheAvailable() && process.env.NODE_ENV === 'production') {
@@ -259,7 +282,23 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error('Articles API error:', error)
-    return NextResponse.json<ApiErrorResponse>({ error: 'Failed to fetch articles' }, { status: 500 })
+    // 개발 환경에서 상세 에러 정보 로깅
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error details:', error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      } : error)
+    }
+    return NextResponse.json<ApiErrorResponse>(
+      { 
+        error: 'Failed to fetch articles',
+        ...(process.env.NODE_ENV === 'development' && error instanceof Error && {
+          details: error.message,
+        }),
+      }, 
+      { status: 500 }
+    )
   }
 }
 

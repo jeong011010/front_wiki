@@ -16,6 +16,7 @@ interface ArticleCardProps {
     updatedAt: Date | string
     preview?: string
     imageUrl?: string | null // 대표 이미지 URL (선택사항)
+    tier?: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' // 계산된 티어 (선택사항)
     author?: {
       name: string
       email: string
@@ -111,30 +112,25 @@ const tierStyles: Record<string, {
 }
 
 export default function ArticleCard({ article }: ArticleCardProps) {
-  // categorySlug를 사용하여 색상 매칭, 없으면 category로 fallback
-  let categoryKey = article.categorySlug || article.category || ''
+  // 티어 결정: API에서 계산된 tier가 있으면 사용, 없으면 카테고리 기반으로 결정
+  const tier: 'general' | 'frontend' | 'cloud' | 'backend' | 'devops' = 
+    article.tier || 
+    (() => {
+      let categoryKey = (article.categorySlug || article.category || '').toLowerCase()
+      if (!categoryKey && article.category) {
+        const nameToSlug: Record<string, string> = {
+          '프론트엔드': 'frontend',
+          '백엔드': 'backend',
+          '클라우드': 'cloud',
+          'devops': 'devops',
+          '일반': 'general',
+        }
+        categoryKey = nameToSlug[article.category.toLowerCase()] || categoryKey
+      }
+      return (categoryKey && tierStyles[categoryKey]) ? categoryKey as typeof tier : 'general'
+    })()
   
-  // categoryKey를 소문자로 변환하여 매칭 (대소문자 구분 없이)
-  if (categoryKey) {
-    categoryKey = categoryKey.toLowerCase()
-  }
-  
-  // 카테고리 이름에서 slug 추출 시도 (한글 이름인 경우)
-  if (!categoryKey && article.category) {
-    const categoryName = article.category.toLowerCase()
-    const nameToSlug: Record<string, string> = {
-      '프론트엔드': 'frontend',
-      '백엔드': 'backend',
-      '클라우드': 'cloud',
-      'devops': 'devops',
-      '일반': 'general',
-    }
-    categoryKey = nameToSlug[categoryName] || categoryName
-  }
-  
-  const tierStyle = categoryKey 
-    ? tierStyles[categoryKey] || tierStyles.general
-    : tierStyles.general
+  const tierStyle = tierStyles[tier] || tierStyles.general
 
   const [rotateX, setRotateX] = useState(0)
   const [rotateY, setRotateY] = useState(0)
@@ -490,7 +486,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
         transition: isDragging ? 'box-shadow 0.2s ease-out' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             boxShadow: getBoxShadow(),
             width: '200px',
-            height: '360px',
+            height: '300px',
             cursor: isDragging ? 'grabbing' : 'grab',
         willChange: 'transform',
         WebkitFontSmoothing: 'antialiased',
@@ -644,13 +640,13 @@ export default function ArticleCard({ article }: ArticleCardProps) {
       
       {/* 중간: 이미지 영역 */}
       <div 
-        className="relative w-full flex-1 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden"
+        className="relative w-full bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden"
         style={{
           transform: 'translateZ(0)',
           willChange: 'transform',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
-          minHeight: '180px',
+          height: '120px', // 고정 높이로 변경
         }}
       >
         {article.imageUrl ? (
@@ -670,9 +666,10 @@ export default function ArticleCard({ article }: ArticleCardProps) {
                 alt={article.title}
                 fill
                 className="object-cover z-10"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                quality={100}
+                sizes="200px"
+                quality={75}
                 priority={false}
+                loading="lazy"
               />
             </div>
             {/* 이미지 오버레이 그라데이션 */}

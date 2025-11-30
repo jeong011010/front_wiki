@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma, withRetry } from '@/lib/prisma'
 import type { ApiErrorResponse } from '@/types'
 
 interface CategoryNode {
@@ -18,7 +18,7 @@ interface CategoryNode {
  */
 export async function GET() {
   try {
-    const categories = await prisma.category.findMany({
+    const categories = await withRetry(() => prisma.category.findMany({
       include: {
         _count: {
           select: {
@@ -31,7 +31,7 @@ export async function GET() {
         { order: 'asc' },
         { name: 'asc' },
       ],
-    })
+    }))
     
     // 계층 구조로 변환
     const categoryMap = new Map<string, CategoryNode>()
@@ -85,8 +85,21 @@ export async function GET() {
     return NextResponse.json(rootCategories)
   } catch (error) {
     console.error('Category tree API error:', error)
+    // 개발 환경에서 상세 에러 정보 로깅
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error details:', error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      } : error)
+    }
     return NextResponse.json<ApiErrorResponse>(
-      { error: 'Failed to fetch category tree' },
+      { 
+        error: 'Failed to fetch category tree',
+        ...(process.env.NODE_ENV === 'development' && error instanceof Error && {
+          details: error.message,
+        }),
+      },
       { status: 500 }
     )
   }
