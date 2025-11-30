@@ -644,13 +644,13 @@ export default function ArticleCard({ article }: ArticleCardProps) {
       
       {/* 중간: 이미지 영역 */}
       <div 
-        className="relative w-full flex-1 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden"
+        className="relative w-full bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden"
         style={{
           transform: 'translateZ(0)',
           willChange: 'transform',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
-          minHeight: '180px',
+          height: '140px', // 고정 높이로 변경
         }}
       >
         {article.imageUrl ? (
